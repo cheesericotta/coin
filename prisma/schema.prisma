@@ -1,0 +1,223 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Auth.js Models
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Financial data
+  years         Year[]
+  categories    Category[]
+  creditCards   CreditCard[]
+  incomeSources IncomeSource[]
+  bankAccounts  BankAccount[]
+  loans         Loan[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Financial Models
+model Year {
+  id        String   @id @default(cuid())
+  year      Int
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  months Month[]
+
+  @@unique([userId, year])
+}
+
+model Month {
+  id        String   @id @default(cuid())
+  month     Int      // 1-12
+  yearId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  year         Year          @relation(fields: [yearId], references: [id], onDelete: Cascade)
+  budgets      Budget[]
+  transactions Transaction[]
+
+  @@unique([yearId, month])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String?  // lucide icon name
+  color     String?  // hex color
+  userId    String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgets      Budget[]
+  transactions Transaction[]
+
+  @@unique([userId, name])
+}
+
+model CreditCard {
+  id        String   @id @default(cuid())
+  name      String
+  lastFour  String?  // last 4 digits
+  color     String?  // hex color for display
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, name])
+}
+
+model IncomeSource {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   // salary, commission, bonus, other
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, name])
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  planned    Decimal  @db.Decimal(10, 2)
+  type       String   // fixed, variable
+  monthId    String
+  categoryId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  month    Month    @relation(fields: [monthId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([monthId, categoryId])
+}
+
+model Transaction {
+  id             String   @id @default(cuid())
+  date           DateTime
+  amount         Decimal  @db.Decimal(10, 2)
+  description    String?
+  notes          String?  @db.Text
+  type           String   // income, expense
+  monthId        String
+  categoryId     String?
+  creditCardId   String?
+  incomeSourceId String?
+  bankAccountId  String?
+  loanId         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  month        Month         @relation(fields: [monthId], references: [id], onDelete: Cascade)
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  creditCard   CreditCard?   @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  incomeSource IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: SetNull)
+  bankAccount  BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  loan         Loan?         @relation(fields: [loanId], references: [id], onDelete: SetNull)
+
+  @@index([monthId])
+  @@index([categoryId])
+  @@index([date])
+}
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  name          String
+  type          String   @default("calcu") // e.g. Savings, Checking, Cash, Investment
+  balance       Decimal  @db.Decimal(10, 2) @default(0)
+  isSavings     Boolean  @default(false)
+  targetAmount  Decimal? @db.Decimal(10, 2) // Optional: for savings goals
+  growthRate    Decimal? @db.Decimal(5, 2) // Optional: for savings/investments
+  targetDate    DateTime?
+  userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Loan {
+  id              String   @id @default(cuid())
+  name            String
+  totalAmount     Decimal  @db.Decimal(10, 2)
+  remainingAmount Decimal  @db.Decimal(10, 2)
+  interestRate    Decimal  @db.Decimal(5, 2) // Percentage
+  monthlyPayment  Decimal? @db.Decimal(10, 2)
+  dueDate         Int?     // Day of month
+  userId          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+
+  @@index([userId])
+}

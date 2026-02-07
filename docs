@@ -1,0 +1,201 @@
+# PRD: Web-Based Financial Tracker
+
+## TL;DR
+People who already track their finances in spreadsheets are doing the *right work* with the *wrong tool*. This product turns a disciplined Excel-based financial tracker (Kira Kira v2) into a structured, automated, insight-driven web app that helps users **plan, track, and understand their finances with less effort and more clarity**.
+
+---
+
+## Problem Statement
+
+Financially disciplined users often outgrow Excel.
+
+While spreadsheets are flexible, they:
+- Require heavy manual upkeep
+- Break easily as data grows
+- Prioritize visual layout over data structure
+- Make year-over-year and category-level analysis painful
+
+Users want to:
+- Plan spending vs reality
+- Track multiple credit cards across months and years
+- Understand *where* money actually goes
+- Reduce time spent maintaining tools
+
+**Core problem:** Users spend more effort maintaining spreadsheets than learning from their financial data.
+
+---
+
+## Goals
+
+### Business Goals
+- Build a sticky personal finance product for power users
+- Become the default system of record for monthly finances
+- Establish a foundation for premium automation and insights
+
+### User Goals
+- Compare planned vs actual spending effortlessly
+- Track multiple income sources and credit cards
+- Understand spending by category and over time
+- See monthly and yearly financial health at a glance
+
+### Non-Goals
+- Bank account replacement
+- Real-time transaction syncing (v1)
+- Investment tracking
+- Tax filing or accounting compliance
+
+---
+
+## Target User
+
+**Primary User:** Individuals who already track finances manually using Excel or Google Sheets.
+
+**Characteristics:**
+- Spreadsheet-literate
+- Uses multiple credit cards
+- Has variable income components
+- Reviews finances monthly
+- Cares about insight, not gamification
+
+---
+
+## User Stories
+
+1. As a user, I want to set a monthly spending plan so I can detect overspending.
+2. As a user, I want to log credit card transactions once and reuse them across all views.
+3. As a user, I want to see planned vs actual differences automatically.
+4. As a user, I want to understand spending by category.
+5. As a user, I want to compare financial performance year over year.
+6. As a user, I want insights without building charts manually.
+
+---
+
+## User Experience (Step-by-Step)
+
+### 1. Initial Setup
+- Create account
+- Select starting year
+- Add income sources (salary, commission, others)
+- Add credit cards
+- Define default spending categories
+
+### 2. Monthly Planning (Baseline)
+- Define fixed commitments and variable budgets
+- Each budget item includes:
+  - Category
+  - Planned amount
+  - Type (fixed / variable)
+
+### 3. Transaction Logging
+- Log transactions with:
+  - Date
+  - Credit card
+  - Amount
+  - Category
+  - Notes
+- Transactions stored in a normalized table
+- Monthly and yearly views derived automatically
+
+### 4. Monthly Review
+- System calculates actual spending per category
+- Planned vs actual differences shown clearly
+- Visual cues highlight overspending
+
+### 5. Yearly Overview
+- Aggregated views for:
+  - Total income vs expenses
+  - Credit card usage by year
+  - Top spending categories
+- Fast year switching (e.g., 2023 → 2026)
+
+---
+
+## Narrative (Executive Story)
+
+This product is built for users who already care about their money.
+
+They track income, spending, and credit cards diligently—but every month feels like spreadsheet maintenance instead of insight generation.
+
+The web tracker respects existing discipline and removes friction:
+- No duplicated tables
+- No broken formulas
+- No manual rollups
+
+Instead, it quietly transforms inputs into clarity:
+- Where money goes
+- What changed this month
+- What patterns are emerging year over year
+
+This is not a beginner budgeting app. It is a **financial command center** for serious users.
+
+---
+
+## Success Metrics
+
+### Engagement
+- Weekly transaction logging rate
+- Monthly active users
+- 3-month retention
+
+### Financial Insight
+- % of users setting monthly baselines
+- % of categorized transactions
+- Average months tracked per user
+
+### Value Indicators
+- Reduction in uncategorized spending
+- Improved planned vs actual accuracy over time
+
+---
+
+## Technical Considerations
+
+### Core Data Models
+- Users
+- Years / Months
+- Income Sources
+- Credit Cards
+- Transactions (normalized)
+- Categories
+- Budgets (planned vs actual)
+
+### Design Principles
+- Normalize data, derive views
+- Optimize for monthly workflows
+- Read-heavy, write-light UX
+- Strong defaults with minimal configuration
+
+### Future Extensions
+- CSV import from bank statements
+- Auto-categorization
+- Mobile-first transaction entry
+- Proactive insights and alerts
+
+---
+
+## Milestones & Sequencing
+
+### Milestone 1 (XX weeks)
+- Core data model
+- Manual transaction entry
+- Monthly baseline vs actual comparison
+
+### Milestone 2 (XX weeks)
+- Category analytics
+- Yearly summaries
+- Credit card rollups
+
+### Milestone 3 (XX weeks)
+- Dashboard and insights
+- CSV imports
+- UX polish and performance improvements
+
+---
+
+## Final Take
+
+The original Excel is proof of intent and demand.
+
+The web product should not copy spreadsheet layouts—it should encode their intent into structure, automation, and insight.
+
+
