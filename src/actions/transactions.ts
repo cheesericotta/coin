@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { Decimal } from "@prisma/client/runtime/library";
+import { Prisma } from "@prisma/client";
 
 async function getAuthenticatedUserId() {
     const session = await auth();
@@ -13,7 +14,7 @@ async function getAuthenticatedUserId() {
     return session.user.id;
 }
 
-async function ensureYearAndMonth(userId: string, year: number, month: number) {
+export async function ensureYearAndMonth(userId: string, year: number, month: number) {
     let yearRecord = await prisma.year.findUnique({
         where: { userId_year: { userId, year } },
     });
@@ -106,7 +107,7 @@ export async function createTransaction(formData: FormData) {
     const { monthRecord } = await ensureYearAndMonth(userId, year, month);
 
     try {
-        await prisma.$transaction(async (tx: any) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.transaction.create({
                 data: {
                     date,
@@ -122,6 +123,18 @@ export async function createTransaction(formData: FormData) {
                     loanId: loanId || null,
                 },
             });
+
+            // Update Bank Account balance if linked
+            if (bankAccountId) {
+                await tx.bankAccount.update({
+                    where: { id: bankAccountId, userId },
+                    data: {
+                        balance: type === "income"
+                            ? { increment: new Decimal(amount) }
+                            : { decrement: new Decimal(amount) },
+                    },
+                });
+            }
 
             // If it's a loan payment, update the loan's remaining amount
             if (loanId && type === "expense") {
@@ -149,8 +162,9 @@ export async function createTransaction(formData: FormData) {
 }
 
 export async function updateTransaction(id: string, formData: FormData) {
+    const userId = await getAuthenticatedUserId();
     const date = new Date(formData.get("date") as string);
-    const amount = formData.get("amount") as string;
+    const amount = new Decimal(formData.get("amount") as string);
     const description = formData.get("description") as string;
     const notes = formData.get("notes") as string;
     const type = formData.get("type") as string;
@@ -158,38 +172,171 @@ export async function updateTransaction(id: string, formData: FormData) {
     const creditCardId = formData.get("creditCardId") as string;
     const incomeSourceId = formData.get("incomeSourceId") as string;
     const bankAccountId = formData.get("bankAccountId") as string;
+    const loanId = formData.get("loanId") as string;
+
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
 
     try {
-        await prisma.transaction.update({
-            where: { id },
-            data: {
-                date,
-                amount: new Decimal(amount),
-                description: description || null,
-                notes: notes || null,
-                type,
-                categoryId: categoryId || null,
-                creditCardId: creditCardId || null,
-                incomeSourceId: incomeSourceId || null,
-                bankAccountId: bankAccountId || null,
-            },
+        const oldTx = await prisma.transaction.findFirst({
+            where: { id, month: { year: { userId } } },
+            include: { month: { include: { year: true } } },
         });
-        revalidatePath("/");
+
+        if (!oldTx) return { error: "Transaction not found" };
+
+        const { monthRecord } = await ensureYearAndMonth(userId, year, month);
+
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            // 1. Reverse OLD effects
+            if (oldTx.bankAccountId) {
+                await tx.bankAccount.update({
+                    where: { id: oldTx.bankAccountId, userId },
+                    data: {
+                        balance: oldTx.type === "income"
+                            ? { decrement: oldTx.amount }
+                            : { increment: oldTx.amount },
+                    },
+                });
+            }
+            if (oldTx.loanId && oldTx.type === "expense") {
+                await tx.loan.update({
+                    where: { id: oldTx.loanId, userId },
+                    data: { remainingAmount: { increment: oldTx.amount } },
+                });
+            }
+            if (oldTx.installmentId && oldTx.type === "expense") {
+                await tx.installment.update({
+                    where: { id: oldTx.installmentId, userId },
+                    data: { remainingMonths: { increment: 1 } },
+                });
+            }
+
+            // 2. Apply NEW effects
+            if (bankAccountId) {
+                await tx.bankAccount.update({
+                    where: { id: bankAccountId, userId },
+                    data: {
+                        balance: type === "income"
+                            ? { increment: amount }
+                            : { decrement: amount },
+                    },
+                });
+            }
+            if (loanId && type === "expense") {
+                await tx.loan.update({
+                    where: { id: loanId, userId },
+                    data: { remainingAmount: { decrement: amount } },
+                });
+            }
+            // Note: We don't typically re-apply installment decrement here 
+            // because editing a transaction shouldn't "pay" an installment again 
+            // unless the user intended to. We'll just keep the old installmentId 
+            // if it hasn't changed, or use the one from the old record.
+            // For now, let's just restore the old installment link if it was there.
+            const finalInstallmentId = oldTx.installmentId;
+
+            // 3. Update transaction
+            await tx.transaction.update({
+                where: { id },
+                data: {
+                    date,
+                    amount,
+                    description: description || null,
+                    notes: notes || null,
+                    type,
+                    monthId: monthRecord.id,
+                    categoryId: categoryId || null,
+                    creditCardId: creditCardId || null,
+                    incomeSourceId: incomeSourceId || null,
+                    bankAccountId: bankAccountId || null,
+                    loanId: loanId || null,
+                    installmentId: finalInstallmentId,
+                },
+            });
+        });
+
+        revalidatePath(`/month/${year}/${month}`);
+        revalidatePath(`/month/${oldTx.month.year.year}/${oldTx.month.month}`);
+        revalidatePath("/transactions");
         revalidatePath("/accounts");
+        revalidatePath("/loans");
+        revalidatePath("/");
         return { success: true };
-    } catch {
+    } catch (e) {
+        console.error("Update transaction error:", e);
         return { error: "Failed to update transaction" };
     }
 }
 
 export async function deleteTransaction(id: string) {
+    const userId = await getAuthenticatedUserId();
+
     try {
-        await prisma.transaction.delete({
-            where: { id },
+        const transaction = await prisma.transaction.findFirst({
+            where: {
+                id,
+                month: { year: { userId } },
+            },
+            include: {
+                month: { include: { year: true } },
+            },
         });
+
+        if (!transaction) return { error: "Transaction not found" };
+
+        const { amount, type, bankAccountId, loanId, installmentId } = transaction;
+        const year = transaction.month.year.year;
+        const month = transaction.month.month;
+
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            // 1. Reverse bank account balance
+            if (bankAccountId) {
+                await tx.bankAccount.update({
+                    where: { id: bankAccountId, userId },
+                    data: {
+                        balance: type === "income"
+                            ? { decrement: amount }
+                            : { increment: amount },
+                    },
+                });
+            }
+
+            // 2. Reverse loan amount
+            if (loanId && type === "expense") {
+                await tx.loan.update({
+                    where: { id: loanId, userId },
+                    data: {
+                        remainingAmount: { increment: amount },
+                    },
+                });
+            }
+
+            // 3. Reverse installment count
+            if (installmentId && type === "expense") {
+                await tx.installment.update({
+                    where: { id: installmentId, userId },
+                    data: {
+                        remainingMonths: { increment: 1 },
+                    },
+                });
+            }
+
+            // 4. Delete the transaction
+            await tx.transaction.delete({
+                where: { id },
+            });
+        });
+
+        revalidatePath(`/month/${year}/${month}`);
+        revalidatePath("/transactions");
+        revalidatePath("/accounts");
+        revalidatePath("/loans");
+        revalidatePath("/settings/credit-cards");
         revalidatePath("/");
         return { success: true };
-    } catch {
+    } catch (e) {
+        console.error("Delete transaction error:", e);
         return { error: "Failed to delete transaction" };
     }
 }

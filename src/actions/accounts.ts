@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { getCurrentDateInKL } from "@/lib/utils";
 
 async function getAuthenticatedUserId() {
     const session = await auth();
@@ -103,4 +104,64 @@ export async function deleteBankAccount(id: string) {
     } catch {
         return { error: "Failed to delete account" };
     }
+}
+
+export async function getSavingsGrowthStats() {
+    const userId = await getAuthenticatedUserId();
+    const now = getCurrentDateInKL();
+    const currentYear = now.getFullYear();
+
+    const accounts = await prisma.bankAccount.findMany({
+        where: { userId, isSavings: true },
+    });
+
+    const startOfYear = new Date(currentYear, 0, 1);
+
+    const stats = await Promise.all(accounts.map(async (account: any) => {
+        const transactions = await prisma.transaction.findMany({
+            where: {
+                bankAccountId: account.id,
+                date: {
+                    gte: startOfYear,
+                },
+            },
+            select: {
+                amount: true,
+                type: true,
+            },
+        });
+
+        const growthAmount = transactions.reduce((sum: number, tx: any) => {
+            return tx.type === "income"
+                ? sum + Number(tx.amount)
+                : sum - Number(tx.amount);
+        }, 0);
+
+        const currentBalance = Number(account.balance);
+        const startingBalance = currentBalance - growthAmount;
+        const growthPercentage = startingBalance !== 0
+            ? (growthAmount / startingBalance) * 100
+            : growthAmount > 0 ? 100 : 0;
+
+        return {
+            accountId: account.id,
+            accountName: account.name,
+            currentBalance,
+            growthAmount,
+            growthPercentage,
+            startingBalance,
+        };
+    }));
+
+    const totalGrowthAmount = stats.reduce((sum, s) => sum + s.growthAmount, 0);
+    const totalStartingBalance = stats.reduce((sum, s) => sum + s.startingBalance, 0);
+    const totalGrowthPercentage = totalStartingBalance !== 0
+        ? (totalGrowthAmount / totalStartingBalance) * 100
+        : totalGrowthAmount > 0 ? 100 : 0;
+
+    return {
+        byAccount: stats,
+        totalGrowthAmount,
+        totalGrowthPercentage,
+    };
 }

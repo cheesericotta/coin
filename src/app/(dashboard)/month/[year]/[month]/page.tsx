@@ -123,41 +123,41 @@ export default async function MonthlyViewPage({
 
                 {/* Summary Cards */}
                 <div className="grid gap-4 md:grid-cols-4">
-                    <Card>
+                    <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 shadow-sm transition-all hover:shadow-md">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Total Income
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-emerald-500">
+                            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                                 {formatCurrency(stats.totalIncome)}
                             </div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-500/20 shadow-sm transition-all hover:shadow-md">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Total Expenses
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-red-500">
+                            <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
                                 {formatCurrency(stats.totalExpenses)}
                             </div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-indigo-500/20 shadow-sm transition-all hover:shadow-md">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Total Planned
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{formatCurrency(totalPlanned)}</div>
+                            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(totalPlanned)}</div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20 shadow-sm transition-all hover:shadow-md">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Budget Variance
@@ -166,8 +166,8 @@ export default async function MonthlyViewPage({
                         <CardContent>
                             <div
                                 className={`text-2xl font-bold ${totalPlanned - totalActual >= 0
-                                    ? "text-emerald-500"
-                                    : "text-red-500"
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : "text-rose-600 dark:text-rose-400"
                                     }`}
                             >
                                 {totalPlanned - totalActual >= 0 ? "+" : ""}
@@ -178,10 +178,10 @@ export default async function MonthlyViewPage({
                 </div>
 
                 {/* Planned vs Actual Table */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Planned vs Actual by Category</CardTitle>
-                        <CardDescription>
+                <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                        <CardTitle className="text-lg font-bold uppercase tracking-tight">Planned vs Actual by Category</CardTitle>
+                        <CardDescription className="font-medium text-[10px] uppercase tracking-widest">
                             Compare your budgeted amounts with actual spending
                         </CardDescription>
                     </CardHeader>
@@ -266,18 +266,18 @@ export default async function MonthlyViewPage({
                 </Card>
 
                 {/* Transactions List */}
-                <Card>
-                    <CardHeader>
+                <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle>Transactions</CardTitle>
-                                <CardDescription>
+                                <CardTitle className="text-lg font-bold uppercase tracking-tight">Transactions</CardTitle>
+                                <CardDescription className="font-medium text-[10px] uppercase tracking-widest">
                                     {transactions.length} transactions this month
                                 </CardDescription>
                             </div>
-                            <Button asChild>
+                            <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-700 font-bold uppercase tracking-tight text-[10px]">
                                 <Link href="/transactions/new">
-                                    <Plus className="mr-2 h-4 w-4" />
+                                    <Plus className="mr-2 h-3 w-3" />
                                     Add Transaction
                                 </Link>
                             </Button>

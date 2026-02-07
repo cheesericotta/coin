@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, PiggyBank, Target, TrendingUp, Trash2, Pencil, Landmark, Wallet, CreditCard as CardIcon } from "lucide-react";
+import { Plus, PiggyBank, Target, TrendingUp, Trash2, Pencil, Landmark, Wallet, CreditCard as CardIcon, ArrowDownRight, Smartphone } from "lucide-react";
 import {
     Card,
     CardContent,
@@ -28,6 +28,16 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { createBankAccount, deleteBankAccount, updateBankAccount } from "@/actions/accounts";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
@@ -45,13 +55,22 @@ interface AccountsDashboardProps {
         growthRate: number | null;
         targetDate: Date | null;
     }[];
+    growthStats: {
+        byAccount: {
+            accountId: string;
+            growthAmount: number;
+            growthPercentage: number;
+        }[];
+    };
 }
 
-export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
+export function AccountsDashboard({ accounts, growthStats }: AccountsDashboardProps) {
     const [open, setOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState<AccountsDashboardProps["accounts"][0] | null>(null);
     const [loading, setLoading] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -88,12 +107,19 @@ export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
     }
 
     async function handleDelete(id: string) {
-        if (!confirm("Are you sure you want to delete this account?")) return;
-        const result = await deleteBankAccount(id);
+        setIdToDelete(id);
+        setDeleteConfirmOpen(true);
+    }
+
+    async function confirmDelete() {
+        if (!idToDelete) return;
+        const result = await deleteBankAccount(idToDelete);
         if (result.error) {
             toast.error(result.error);
         } else {
             toast.success("Account deleted");
+            setDeleteConfirmOpen(false);
+            setIdToDelete(null);
         }
     }
 
@@ -119,6 +145,7 @@ export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
     const getAccountIcon = (type: string) => {
         switch (type.toLowerCase()) {
             case "cash": return <Wallet className="h-4 w-4" />;
+            case "e-wallet": return <Smartphone className="h-4 w-4" />;
             case "credit": return <CardIcon className="h-4 w-4" />;
             default: return <Landmark className="h-4 w-4" />;
         }
@@ -159,9 +186,9 @@ export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
                                         <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Savings">Savings Account</SelectItem>
-                                        <SelectItem value="Checking">Checking Account</SelectItem>
-                                        <SelectItem value="Cash">Cash / Wallet</SelectItem>
+                                        <SelectItem value="Savings">Bank Account</SelectItem>
+                                        <SelectItem value="E-Wallet">E-Wallet</SelectItem>
+                                        <SelectItem value="Cash">Cash</SelectItem>
                                         <SelectItem value="Investment">Investment</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -216,9 +243,9 @@ export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
                                             <SelectValue placeholder="Select type" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Savings">Savings Account</SelectItem>
-                                            <SelectItem value="Checking">Checking Account</SelectItem>
-                                            <SelectItem value="Cash">Cash / Wallet</SelectItem>
+                                            <SelectItem value="Savings">Bank Account</SelectItem>
+                                            <SelectItem value="E-Wallet">E-Wallet</SelectItem>
+                                            <SelectItem value="Cash">Cash</SelectItem>
                                             <SelectItem value="Investment">Investment</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -256,37 +283,59 @@ export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
                 </Dialog>
             </div>
 
+            <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your bank account
+                            and all associated records.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setIdToDelete(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {/* Total Balance Card */}
-                <Card>
+                <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-indigo-500/20 shadow-sm transition-all hover:shadow-md">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-                        <Landmark className="h-4 w-4 text-muted-foreground" />
+                        <Landmark className="h-4 w-4 text-indigo-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(totalBalance)}</div>
-                        <p className="text-xs text-muted-foreground">
+                        <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                            {formatCurrency(totalBalance)}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 font-medium">
                             Across {accounts.length} accounts
                         </p>
                     </CardContent>
                 </Card>
 
                 {/* Total Savings Card */}
-                <Card>
+                <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 shadow-sm transition-all hover:shadow-md">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Savings</CardTitle>
-                        <PiggyBank className="h-4 w-4 text-muted-foreground" />
+                        <PiggyBank className="h-4 w-4 text-emerald-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(totalSavings)}</div>
-                        <p className="text-xs text-muted-foreground">
+                        <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(totalSavings)}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 font-medium">
                             {savingsAccounts.length} savings accounts
                         </p>
                     </CardContent>
                 </Card>
 
                 {/* Growth Chart */}
-                <Card className="col-span-full lg:col-span-1">
+                <Card className="col-span-full lg:col-span-1 border-emerald-500/10">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-sm font-medium">1-Year Projection</CardTitle>
@@ -294,15 +343,27 @@ export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-[60px] w-full">
+                        <div className="h-[70px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={projectionData}>
-                                    <Area type="monotone" dataKey="value" stroke="#10b981" fill="#10b981" fillOpacity={0.2} />
+                                    <defs>
+                                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <Area
+                                        type="monotone"
+                                        dataKey="value"
+                                        stroke="#10b981"
+                                        strokeWidth={2}
+                                        fill="url(#colorValue)"
+                                    />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
-                        <div className="mt-2 text-xs text-muted-foreground text-center">
-                            Based on savings accounts only
+                        <div className="mt-2 text-[10px] uppercase font-bold tracking-wider text-muted-foreground text-center">
+                            Projected Growth
                         </div>
                     </CardContent>
                 </Card>
@@ -311,15 +372,20 @@ export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {accounts.map((account) => {
                     const progress = account.targetAmount ? (Number(account.balance) / Number(account.targetAmount)) * 100 : 0;
+                    const stats = growthStats.byAccount.find(s => s.accountId === account.id);
+                    const isPositive = stats ? stats.growthAmount >= 0 : true;
+
                     return (
-                        <Card key={account.id} className="group relative overflow-hidden">
+                        <Card key={account.id} className="group relative overflow-hidden transition-all hover:shadow-md hover:border-emerald-500/30">
                             <CardHeader className="pb-2">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        {getAccountIcon(account.type)}
-                                        <CardTitle className="text-base font-medium">{account.name}</CardTitle>
+                                        <div className={`p-2 rounded-lg ${account.isSavings ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-500/10 text-slate-600'}`}>
+                                            {getAccountIcon(account.type)}
+                                        </div>
+                                        <CardTitle className="text-base font-semibold">{account.name}</CardTitle>
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -342,27 +408,40 @@ export function AccountsDashboard({ accounts }: AccountsDashboardProps) {
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold mb-2">{formatCurrency(Number(account.balance))}</div>
+                            <CardContent className="relative">
+                                <div className="text-3xl font-bold mb-1 tracking-tight">{formatCurrency(Number(account.balance))}</div>
                                 <div className="flex items-center justify-between mb-4">
-                                    <span className="text-xs text-muted-foreground capitalize">{account.type}</span>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                                        {account.type === "Savings" ? "Bank Account" : account.type}
+                                    </span>
                                     {account.isSavings && (
-                                        <span className="text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded">Savings</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-tight bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full">Savings</span>
                                     )}
                                 </div>
                                 {account.targetAmount && account.isSavings && (
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-xs text-muted-foreground">
-                                            <span>Target: {formatCurrency(Number(account.targetAmount))}</span>
-                                            <span>{progress.toFixed(0)}%</span>
+                                    <div className="space-y-2 mt-4">
+                                        <div className="flex justify-between text-xs font-semibold">
+                                            <span className="text-muted-foreground">Target: {formatCurrency(Number(account.targetAmount))}</span>
+                                            <span className="text-emerald-600">{progress.toFixed(0)}%</span>
                                         </div>
-                                        <Progress value={progress} className="h-2" />
+                                        <Progress value={progress} className="h-1.5 bg-emerald-100 dark:bg-emerald-950 [&>div]:bg-emerald-500" />
                                     </div>
                                 )}
-                                {account.growthRate && account.isSavings && (
-                                    <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
-                                        <span>{Number(account.growthRate)}% APY</span>
+                                {Number(account.growthRate) > 0 && (
+                                    <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[10px] font-bold tracking-tight">
+                                        <TrendingUp className="h-3 w-3" />
+                                        <span>{Number(account.growthRate)}%</span>
+                                    </div>
+                                )}
+                                {account.isSavings && stats && (
+                                    <div className="mt-4 border-t pt-4">
+                                        <div className="flex items-center justify-between text-xs font-semibold">
+                                            <span className="text-muted-foreground">YTD Growth</span>
+                                            <div className={`flex items-center gap-1 ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                {isPositive ? <TrendingUp className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                                                <span>{isPositive ? '+' : ''}{formatCurrency(stats.growthAmount)} ({stats.growthPercentage.toFixed(1)}%)</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </CardContent>

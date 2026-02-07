@@ -22,6 +22,9 @@ import { getCategories } from "@/actions/categories";
 import { getCreditCards } from "@/actions/credit-cards";
 import { getIncomeSources } from "@/actions/income-sources";
 
+import { DataManagement } from "@/components/data-management";
+import { Database } from "lucide-react";
+
 export default async function SettingsPage() {
     const [categories, creditCards, incomeSources] = await Promise.all([
         getCategories(),
@@ -39,7 +42,7 @@ export default async function SettingsPage() {
                     <h1 className="text-lg font-semibold">Settings</h1>
                 </div>
             </header>
-            <div className="flex flex-1 flex-col gap-6 p-6">
+            <div className="flex flex-1 flex-col gap-8 p-6">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
                     <p className="text-muted-foreground">
@@ -198,6 +201,21 @@ export default async function SettingsPage() {
                             </div>
                         </CardContent>
                     </Card>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                            <Database className="h-6 w-6" />
+                            Data Management
+                        </h2>
+                        <p className="text-muted-foreground">
+                            Control your data by exporting your records or starting fresh.
+                        </p>
+                    </div>
+                    <DataManagement />
                 </div>
             </div>
         </>

@@ -30,6 +30,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { createIncomeSource, deleteIncomeSource, updateIncomeSource } from "@/actions/income-sources";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +58,8 @@ export function IncomeSourcesSettings({ incomeSources }: IncomeSourcesSettingsPr
     const [editOpen, setEditOpen] = useState(false);
     const [selectedSource, setSelectedSource] = useState<IncomeSourcesSettingsProps["incomeSources"][0] | null>(null);
     const [loading, setLoading] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
     const router = useRouter();
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -87,12 +100,19 @@ export function IncomeSourcesSettings({ incomeSources }: IncomeSourcesSettingsPr
     }
 
     async function handleDelete(id: string) {
-        if (!confirm("Are you sure you want to delete this income source?")) return;
-        const result = await deleteIncomeSource(id);
+        setIdToDelete(id);
+        setDeleteConfirmOpen(true);
+    }
+
+    async function confirmDelete() {
+        if (!idToDelete) return;
+        const result = await deleteIncomeSource(idToDelete);
         if (result.error) {
             toast.error(result.error);
         } else {
             toast.success("Income source deleted");
+            setDeleteConfirmOpen(false);
+            setIdToDelete(null);
             router.refresh();
         }
     }
@@ -229,6 +249,23 @@ export function IncomeSourcesSettings({ incomeSources }: IncomeSourcesSettingsPr
                         </DialogContent>
                     </Dialog>
                 </div>
+
+                <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete this income source. Past transactions will remain but won't be linked to this source.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setIdToDelete(null)}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {incomeSources.map((source) => (

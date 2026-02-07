@@ -226,14 +226,15 @@ export function BudgetsPage({
                 </div>
 
                 {/* Summary */}
-                <Card>
+                <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 shadow-sm transition-all hover:shadow-md">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Total Planned
+                            Aggregate Monthly Budget
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{formatCurrency(totalPlanned)}</div>
+                        <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(totalPlanned)}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Set for {budgets.length} spending categories</p>
                     </CardContent>
                 </Card>
 

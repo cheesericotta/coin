@@ -24,8 +24,10 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DatePicker } from "@/components/ui/date-picker";
 import { createTransaction } from "@/actions/transactions";
 import { toast } from "sonner";
+import { getCurrentDateInKL } from "@/lib/utils";
 
 interface NewTransactionFormProps {
     categories: { id: string; name: string; color: string | null }[];
@@ -44,7 +46,10 @@ export function NewTransactionForm({
 }: NewTransactionFormProps) {
     const [type, setType] = useState<"expense" | "income">("expense");
     const [isLoanPayment, setIsLoanPayment] = useState(false);
+    const [isCCPayment, setIsCCPayment] = useState(false);
+    const [paymentSource, setPaymentSource] = useState("");
     const [loading, setLoading] = useState(false);
+    const [date, setDate] = useState<Date | undefined>(getCurrentDateInKL());
     const router = useRouter();
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -53,14 +58,20 @@ export function NewTransactionForm({
 
         const formData = new FormData(e.currentTarget);
         formData.set("type", type);
+        if (date) {
+            formData.set("date", date.toISOString());
+        }
 
         // Handle consolidated payment source for expenses
         if (type === "expense") {
-            const paymentSource = formData.get("paymentSource") as string;
-            if (paymentSource) {
-                const [sourceType, id] = paymentSource.split(":");
+            const source = formData.get("paymentSource") as string;
+            if (source) {
+                const [sourceType, id] = source.split(":");
                 if (sourceType === "bank") {
                     formData.set("bankAccountId", id);
+                    if (isCCPayment) {
+                        formData.set("creditCardId", formData.get("targetCreditCardId") as string);
+                    }
                 } else if (sourceType === "card") {
                     formData.set("creditCardId", id);
                 }
@@ -118,7 +129,11 @@ export function NewTransactionForm({
                                     type="button"
                                     variant={type === "income" ? "default" : "outline"}
                                     className={`flex-1 ${type === "income" ? "bg-emerald-500 hover:bg-emerald-600" : ""}`}
-                                    onClick={() => setType("income")}
+                                    onClick={() => {
+                                        setType("income");
+                                        setIsCCPayment(false);
+                                        setIsLoanPayment(false);
+                                    }}
                                 >
                                     <ArrowLeft className="mr-2 h-4 w-4 rotate-[135deg]" />
                                     Income
@@ -145,18 +160,8 @@ export function NewTransactionForm({
 
                             {/* Date */}
                             <div className="space-y-2">
-                                <Label htmlFor="date">Date</Label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="date"
-                                        name="date"
-                                        type="date"
-                                        className="pl-9"
-                                        defaultValue={new Date().toISOString().split("T")[0]}
-                                        required
-                                    />
-                                </div>
+                                <Label>Date</Label>
+                                <DatePicker date={date} setDate={setDate} />
                             </div>
 
                             {/* Description */}
@@ -234,7 +239,10 @@ export function NewTransactionForm({
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="paymentSource">Source of Funds</Label>
-                                        <Select name="paymentSource">
+                                        <Select name="paymentSource" onValueChange={(val) => {
+                                            setPaymentSource(val);
+                                            if (!val.startsWith("bank:")) setIsCCPayment(false);
+                                        }}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="How did you pay?" />
                                             </SelectTrigger>
@@ -274,6 +282,44 @@ export function NewTransactionForm({
                                         </Select>
                                     </div>
 
+                                    {paymentSource.startsWith("bank:") && (
+                                        <div className="space-y-4 border-t pt-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="space-y-0.5">
+                                                    <Label>Credit Card Payment</Label>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Is this a payment towards a credit card?
+                                                    </p>
+                                                </div>
+                                                <Switch
+                                                    checked={isCCPayment}
+                                                    onCheckedChange={(checked) => {
+                                                        setIsCCPayment(checked);
+                                                        if (checked) setIsLoanPayment(false);
+                                                    }}
+                                                />
+                                            </div>
+
+                                            {isCCPayment && (
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="targetCreditCardId">Select Credit Card</Label>
+                                                    <Select name="targetCreditCardId" required={isCCPayment}>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Which card are you paying?" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {creditCards.map((card) => (
+                                                                <SelectItem key={card.id} value={card.id}>
+                                                                    {card.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="space-y-4 border-t pt-4">
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-0.5">
@@ -284,7 +330,10 @@ export function NewTransactionForm({
                                             </div>
                                             <Switch
                                                 checked={isLoanPayment}
-                                                onCheckedChange={setIsLoanPayment}
+                                                onCheckedChange={(checked) => {
+                                                    setIsLoanPayment(checked);
+                                                    if (checked) setIsCCPayment(false);
+                                                }}
                                             />
                                         </div>
 

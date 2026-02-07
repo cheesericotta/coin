@@ -1,11 +1,14 @@
 import { AccountsDashboard } from "@/components/accounts-dashboard";
-import { getBankAccounts } from "@/actions/accounts";
+import { getBankAccounts, getSavingsGrowthStats } from "@/actions/accounts";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Landmark } from "lucide-react";
 
 export default async function AccountsPage() {
-    const accounts = await getBankAccounts();
+    const [accounts, growthStats] = await Promise.all([
+        getBankAccounts(),
+        getSavingsGrowthStats()
+    ]);
 
     return (
         <>
@@ -17,7 +20,7 @@ export default async function AccountsPage() {
                     <h1 className="text-lg font-semibold">Accounts</h1>
                 </div>
             </header>
-            <AccountsDashboard accounts={accounts} />
+            <AccountsDashboard accounts={accounts} growthStats={growthStats} />
         </>
     );
 }

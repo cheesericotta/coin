@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { getYearlyStats } from "@/actions/transactions";
 import { formatCurrency } from "@/lib/utils";
+import { MonthlyBreakdownChart } from "@/components/monthly-breakdown-chart";
 
 const monthNames = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -32,6 +33,17 @@ export default async function YearlyViewPage({
         ...stats.monthlyData.map((m) => Math.max(m.income, m.expenses)),
         1
     );
+
+    const fullMonthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ];
+
+    const chartData = stats.monthlyData.map((d: any) => ({
+        month: fullMonthNames[d.month - 1],
+        income: d.income,
+        expenses: d.expenses,
+    }));
 
     return (
         <>
@@ -94,12 +106,15 @@ export default async function YearlyViewPage({
                 </div>
 
                 {/* Monthly Breakdown Chart */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Monthly Breakdown</CardTitle>
-                        <CardDescription>Income vs Expenses by month</CardDescription>
+                <MonthlyBreakdownChart data={chartData} />
+
+                {/* Monthly Detailed List */}
+                <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                        <CardTitle className="text-lg font-bold uppercase tracking-tight">Monthly Details</CardTitle>
+                        <CardDescription className="font-medium text-[10px] uppercase tracking-widest">Detailed breakdown by month</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-6">
                         <div className="space-y-4">
                             {stats.monthlyData.map((month, index) => (
                                 <Link
@@ -107,33 +122,33 @@ export default async function YearlyViewPage({
                                     href={`/month/${year}/${month.month}`}
                                     className="block"
                                 >
-                                    <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                                    <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-800">
                                         <div className="w-12 text-sm font-medium">
                                             {monthNames[index]}
                                         </div>
                                         <div className="flex-1 space-y-2">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-16 text-xs text-emerald-500">Income</div>
+                                                <div className="w-16 text-xs text-emerald-500 font-bold uppercase tracking-tighter">Income</div>
                                                 <Progress
                                                     value={(month.income / maxMonthlyValue) * 100}
-                                                    className="flex-1 h-2 [&>div]:bg-emerald-500"
+                                                    className="flex-1 h-2 bg-emerald-100 dark:bg-emerald-950 [&>div]:bg-emerald-500"
                                                 />
-                                                <div className="w-24 text-sm text-right">
+                                                <div className="w-24 text-sm text-right font-mono">
                                                     {formatCurrency(month.income)}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-16 text-xs text-red-500">Expenses</div>
+                                                <div className="w-16 text-xs text-red-500 font-bold uppercase tracking-tighter">Expenses</div>
                                                 <Progress
                                                     value={(month.expenses / maxMonthlyValue) * 100}
-                                                    className="flex-1 h-2 [&>div]:bg-red-500"
+                                                    className="flex-1 h-2 bg-rose-100 dark:bg-rose-950 [&>div]:bg-red-500"
                                                 />
-                                                <div className="w-24 text-sm text-right">
+                                                <div className="w-24 text-sm text-right font-mono">
                                                     {formatCurrency(month.expenses)}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className={`w-24 text-right font-medium ${month.income - month.expenses >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                                        <div className={`w-24 text-right font-bold ${month.income - month.expenses >= 0 ? "text-emerald-500" : "text-red-500"}`}>
                                             {month.income - month.expenses >= 0 ? "+" : ""}
                                             {formatCurrency(month.income - month.expenses)}
                                         </div>

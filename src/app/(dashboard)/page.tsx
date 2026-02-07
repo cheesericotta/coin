@@ -23,7 +23,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { getMonthlyStats, getTransactions } from "@/actions/transactions";
 import { getCreditCards } from "@/actions/credit-cards";
-import { getBankAccounts } from "@/actions/accounts";
+import { getBankAccounts, getSavingsGrowthStats } from "@/actions/accounts";
 import { formatCurrency, getCurrentDateInKL } from "@/lib/utils";
 
 export default async function DashboardPage() {
@@ -31,11 +31,12 @@ export default async function DashboardPage() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
 
-    const [stats, transactions, creditCards, bankAccounts] = await Promise.all([
+    const [stats, transactions, creditCards, bankAccounts, growthStats] = await Promise.all([
         getMonthlyStats(year, month),
         getTransactions(year, month),
         getCreditCards(),
         getBankAccounts(),
+        getSavingsGrowthStats(),
     ]);
 
     const recentTransactions = transactions.slice(0, 5).map((tx: any) => ({
@@ -94,55 +95,66 @@ export default async function DashboardPage() {
 
                 {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-                            <Landmark className="h-4 w-4 text-blue-500" />
+                    <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-indigo-500/20 shadow-sm transition-all hover:shadow-md">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Total Balance</CardTitle>
+                            <Landmark className="h-4 w-4 text-indigo-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-blue-500">
+                            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                                 {formatCurrency(totalBalance)}
                             </div>
-                            <p className="text-xs text-muted-foreground">Across all accounts</p>
+                            <p className="text-[10px] text-muted-foreground uppercase mt-1">Across all accounts</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Total Savings</CardTitle>
+                    <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 shadow-sm transition-all hover:shadow-md">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Total Savings</CardTitle>
                             <PiggyBank className="h-4 w-4 text-emerald-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-emerald-500">
-                                {formatCurrency(totalSavings)}
+                            <div className="flex items-baseline gap-2">
+                                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                                    {formatCurrency(totalSavings)}
+                                </div>
+                                <div className={`flex items-center text-xs font-medium ${growthStats.totalGrowthAmount >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                                    {growthStats.totalGrowthAmount >= 0 ? <TrendingUp className="mr-1 h-3 w-3" /> : <ArrowDownRight className="mr-1 h-3 w-3" />}
+                                    {growthStats.totalGrowthPercentage.toFixed(1)}%
+                                </div>
                             </div>
-                            <p className="text-xs text-muted-foreground">Marked as savings</p>
+                            <div className="flex justify-between items-center mt-1">
+                                <p className="text-[10px] text-muted-foreground uppercase">Marked as savings</p>
+                                <p className={`text-[10px] font-medium ${growthStats.totalGrowthAmount >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                                    {growthStats.totalGrowthAmount >= 0 ? "+" : ""}{formatCurrency(growthStats.totalGrowthAmount)} YTD
+                                </p>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
-                            <ArrowDownRight className="h-4 w-4 text-red-500" />
+                    <Card className="bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-500/20 shadow-sm transition-all hover:shadow-md">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Monthly Expenses</CardTitle>
+                            <ArrowDownRight className="h-4 w-4 text-rose-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-red-500">
+                            <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
                                 {formatCurrency(stats.totalExpenses)}
                             </div>
-                            <p className="text-xs text-muted-foreground">This month</p>
+                            <p className="text-[10px] text-muted-foreground uppercase mt-1">This month</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Budget Used</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-purple-500" />
+                    <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20 shadow-sm transition-all hover:shadow-md">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Budget Used</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-amber-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-purple-500">
+                            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                                 {budgetUtilization.toFixed(1)}%
                             </div>
-                            <Progress value={Math.min(budgetUtilization, 100)} className="mt-2" />
+                            <Progress value={Math.min(budgetUtilization, 100)} className="h-1.5 mt-3" />
                         </CardContent>
                     </Card>
                 </div>
@@ -150,15 +162,15 @@ export default async function DashboardPage() {
                 {/* Category Breakdown and Recent Transactions */}
                 <div className="grid gap-6 lg:grid-cols-2">
                     {/* Category Breakdown */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <TrendingUp className="h-5 w-5" />
+                    <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                            <CardTitle className="flex items-center gap-2 text-lg font-bold uppercase tracking-tight">
+                                <TrendingUp className="h-5 w-5 text-indigo-500" />
                                 Category Breakdown
                             </CardTitle>
-                            <CardDescription>Planned vs actual spending</CardDescription>
+                            <CardDescription className="font-medium text-[10px] uppercase tracking-widest">Planned vs actual spending</CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-6">
                             {stats.categoryBreakdown.length > 0 ? (
                                 <div className="space-y-4">
                                     {stats.categoryBreakdown.map((cat: any) => {
@@ -211,13 +223,13 @@ export default async function DashboardPage() {
                     </Card>
 
                     {/* Recent Transactions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <CreditCard className="h-5 w-5" />
+                    <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                            <CardTitle className="flex items-center gap-2 text-lg font-bold uppercase tracking-tight">
+                                <CreditCard className="h-5 w-5 text-rose-500" />
                                 Recent Transactions
                             </CardTitle>
-                            <CardDescription>Latest activity this month</CardDescription>
+                            <CardDescription className="font-medium text-[10px] uppercase tracking-widest">Latest activity this month</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {recentTransactions.length > 0 ? (

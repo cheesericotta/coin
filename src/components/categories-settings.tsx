@@ -23,6 +23,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { createCategory, deleteCategory, updateCategory } from "@/actions/categories";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +53,8 @@ export function CategoriesSettings({ categories }: CategoriesSettingsProps) {
     const [editOpen, setEditOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<CategoriesSettingsProps["categories"][0] | null>(null);
     const [loading, setLoading] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
     const router = useRouter();
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -81,12 +94,19 @@ export function CategoriesSettings({ categories }: CategoriesSettingsProps) {
     }
 
     async function handleDelete(id: string) {
-        if (!confirm("Are you sure you want to delete this category?")) return;
-        const result = await deleteCategory(id);
+        setIdToDelete(id);
+        setDeleteConfirmOpen(true);
+    }
+
+    async function confirmDelete() {
+        if (!idToDelete) return;
+        const result = await deleteCategory(idToDelete);
         if (result.error) {
             toast.error(result.error);
         } else {
             toast.success("Category deleted");
+            setDeleteConfirmOpen(false);
+            setIdToDelete(null);
             router.refresh();
         }
     }
@@ -255,6 +275,23 @@ export function CategoriesSettings({ categories }: CategoriesSettingsProps) {
                         </DialogContent>
                     </Dialog>
                 </div>
+
+                <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete this category. Transactions in this category will become uncategorized.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setIdToDelete(null)}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {categories.map((category) => (
