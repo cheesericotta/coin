@@ -144,21 +144,22 @@ export async function createInstallment(formData: FormData) {
             });
 
             if (scheduledTransactions.length > 0) {
-                for (const scheduled of scheduledTransactions) {
-                    await tx.transaction.create({
-                        data: {
-                            date: scheduled.date,
-                            amount: scheduled.amount,
-                            description: `Installment Balance Payment: ${name}`,
-                            type: "expense",
-                            monthId: scheduled.monthId,
-                            creditCardId,
-                            categoryId,
-                            installmentId: installment.id,
-                        },
-                    });
-                }
+                await tx.transaction.createMany({
+                    data: scheduledTransactions.map((scheduled) => ({
+                        date: scheduled.date,
+                        amount: scheduled.amount,
+                        description: `Installment Balance Payment: ${name}`,
+                        type: "expense",
+                        monthId: scheduled.monthId,
+                        creditCardId,
+                        categoryId,
+                        installmentId: installment.id,
+                    })),
+                });
             }
+        }, {
+            // Vercel/serverless latency can exceed Prisma's default 5s interactive timeout.
+            timeout: 20000,
         });
         revalidatePath("/settings/credit-cards");
         revalidatePath("/accounts");
@@ -175,6 +176,9 @@ export async function createInstallment(formData: FormData) {
             }
             if (e.code === "P2022") {
                 return { error: "Database column mismatch. Run Prisma migrations." };
+            }
+            if (e.code === "P2028") {
+                return { error: "Installment creation timed out. Please try a smaller paid amount or retry." };
             }
         }
 
