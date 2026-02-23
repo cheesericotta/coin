@@ -59,6 +59,7 @@ interface TransactionListProps {
     incomeSources: any[];
     bankAccounts: any[];
     loans: any[];
+    installments: any[];
 }
 
 export function TransactionList({
@@ -68,6 +69,7 @@ export function TransactionList({
     incomeSources,
     bankAccounts,
     loans,
+    installments,
 }: TransactionListProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -133,6 +135,7 @@ export function TransactionList({
                     <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
                         <SelectItem value="expense">Expense</SelectItem>
+                        <SelectItem value="payment">Payment</SelectItem>
                         <SelectItem value="income">Income</SelectItem>
                     </SelectContent>
                 </Select>
@@ -299,6 +302,7 @@ export function TransactionList({
                             incomeSources={incomeSources}
                             bankAccounts={bankAccounts}
                             loans={loans}
+                            installments={installments}
                             onSuccess={() => setEditingTransaction(null)}
                             onCancel={() => setEditingTransaction(null)}
                         />

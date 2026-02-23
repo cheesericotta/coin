@@ -85,6 +85,7 @@ interface CreditCardsSettingsProps {
         monthlyPayment: number;
         totalMonths: number;
         remainingMonths: number;
+        balance: number;
         startDate: string;
         creditCardId: string;
         categoryId: string | null;
@@ -101,6 +102,10 @@ interface CreditCardsSettingsProps {
         name: string;
         color: string | null;
     }[];
+}
+
+function formatDateInKL(dateString: string) {
+    return new Date(dateString).toLocaleDateString("en-MY", { timeZone: "Asia/Kuala_Lumpur" });
 }
 
 export function CreditCardsSettings({ creditCards, installments, categories }: CreditCardsSettingsProps) {
@@ -526,14 +531,14 @@ export function CreditCardsSettings({ creditCards, installments, categories }: C
                                     setLoading(true);
                                     const formData = new FormData(e.currentTarget);
                                     if (installmentDate) {
-                                        formData.set("startDate", installmentDate.toISOString());
+                                        formData.set("startDate", installmentDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kuala_Lumpur" }));
                                     }
                                     const result = await createInstallment(formData);
                                     if (result.error) toast.error(result.error);
                                     else {
                                         toast.success("Installment added");
                                         setInstallmentOpen(false);
-                                        setInstallmentDate(new Date());
+                                        setInstallmentDate(getCurrentDateInKL());
                                         router.refresh();
                                     }
                                     setLoading(false);
@@ -763,12 +768,13 @@ export function CreditCardsSettings({ creditCards, installments, categories }: C
                                         <div className="text-xs text-muted-foreground uppercase">Remaining</div>
                                         <div className="text-right">
                                             <p className="font-semibold">{inst.remainingMonths} / {inst.totalMonths} months</p>
+                                            <p className="text-xs text-muted-foreground">Balance: {formatCurrency(inst.balance)}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
                                         <Progress value={((inst.totalMonths - inst.remainingMonths) / inst.totalMonths) * 100} className="h-1.5" />
                                         <div className="flex justify-between text-[10px] text-muted-foreground">
-                                            <span>Start: {new Date(inst.startDate).toLocaleDateString()}</span>
+                                            <span>Start: {formatDateInKL(inst.startDate)}</span>
                                             <span>Total: {formatCurrency(inst.totalAmount)}</span>
                                         </div>
                                     </div>

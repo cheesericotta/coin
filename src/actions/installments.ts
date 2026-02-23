@@ -73,6 +73,7 @@ export async function getInstallments() {
         monthlyPayment: Number(inst.monthlyPayment),
         totalMonths: inst.totalMonths,
         remainingMonths: inst.remainingMonths,
+        balance: Number(inst.monthlyPayment) * inst.remainingMonths,
         startDate: inst.startDate.toISOString(),
         creditCardId: inst.creditCardId,
         categoryId: inst.categoryId,

@@ -7,6 +7,10 @@ import { revalidatePath } from "next/cache";
 import { Decimal } from "@prisma/client/runtime/library";
 import { Prisma } from "@prisma/client";
 
+function isDebtPaymentType(type: string) {
+    return type === "payment" || type === "expense";
+}
+
 async function getAuthenticatedUserId() {
     const session = await auth();
     if (!session?.user?.id) {
@@ -69,6 +73,10 @@ export async function getTransactions(year: number, month: number) {
     return transactions.map((tx: any) => ({
         ...tx,
         amount: Number(tx.amount),
+        creditCard: tx.creditCard ? {
+            ...tx.creditCard,
+            limit: tx.creditCard.limit ? Number(tx.creditCard.limit) : null,
+        } : null,
         bankAccount: tx.bankAccount ? {
             ...tx.bankAccount,
             balance: Number(tx.bankAccount.balance),
@@ -100,9 +108,13 @@ export async function createTransaction(formData: FormData) {
     const bankAccountId = formData.get("bankAccountId") as string;
 
     const loanId = formData.get("loanId") as string;
+    const installmentId = formData.get("installmentId") as string;
 
     if (!amount || !type) {
         return { error: "Amount and type are required" };
+    }
+    if (!["income", "expense", "payment"].includes(type)) {
+        return { error: "Invalid transaction type" };
     }
 
     const { monthRecord } = await ensureYearAndMonth(userId, year, month);
@@ -122,6 +134,7 @@ export async function createTransaction(formData: FormData) {
                     incomeSourceId: incomeSourceId || null,
                     bankAccountId: bankAccountId || null,
                     loanId: loanId || null,
+                    installmentId: installmentId || null,
                 },
             });
 
@@ -138,13 +151,22 @@ export async function createTransaction(formData: FormData) {
             }
 
             // If it's a loan payment, update the loan's remaining amount
-            if (loanId && type === "expense") {
+            if (loanId && isDebtPaymentType(type)) {
                 await tx.loan.update({
                     where: { id: loanId, userId },
                     data: {
                         remainingAmount: {
                             decrement: new Decimal(amount),
                         },
+                    },
+                });
+            }
+
+            if (installmentId && isDebtPaymentType(type)) {
+                await tx.installment.update({
+                    where: { id: installmentId, userId },
+                    data: {
+                        remainingMonths: { decrement: 1 },
                     },
                 });
             }
@@ -200,13 +222,13 @@ export async function updateTransaction(id: string, formData: FormData) {
                     },
                 });
             }
-            if (oldTx.loanId && oldTx.type === "expense") {
+            if (oldTx.loanId && isDebtPaymentType(oldTx.type)) {
                 await tx.loan.update({
                     where: { id: oldTx.loanId, userId },
                     data: { remainingAmount: { increment: oldTx.amount } },
                 });
             }
-            if (oldTx.installmentId && oldTx.type === "expense") {
+            if (oldTx.installmentId && isDebtPaymentType(oldTx.type)) {
                 await tx.installment.update({
                     where: { id: oldTx.installmentId, userId },
                     data: { remainingMonths: { increment: 1 } },
@@ -224,15 +246,14 @@ export async function updateTransaction(id: string, formData: FormData) {
                     },
                 });
             }
-            if (loanId && type === "expense") {
+            if (loanId && isDebtPaymentType(type)) {
                 await tx.loan.update({
                     where: { id: loanId, userId },
                     data: { remainingAmount: { decrement: amount } },
                 });
             }
-            // Preserve installment link; re-apply its effect if the updated tx is still an expense.
-            const finalInstallmentId = oldTx.installmentId;
-            if (finalInstallmentId && type === "expense") {
+            const finalInstallmentId = (formData.get("installmentId") as string) || oldTx.installmentId;
+            if (finalInstallmentId && isDebtPaymentType(type)) {
                 await tx.installment.update({
                     where: { id: finalInstallmentId, userId },
                     data: { remainingMonths: { decrement: 1 } },
@@ -306,7 +327,7 @@ export async function deleteTransaction(id: string) {
             }
 
             // 2. Reverse loan amount
-            if (loanId && type === "expense") {
+            if (loanId && isDebtPaymentType(type)) {
                 await tx.loan.update({
                     where: { id: loanId, userId },
                     data: {
@@ -316,7 +337,7 @@ export async function deleteTransaction(id: string) {
             }
 
             // 3. Reverse installment count
-            if (installmentId && type === "expense") {
+            if (installmentId && isDebtPaymentType(type)) {
                 await tx.installment.update({
                     where: { id: installmentId, userId },
                     data: {

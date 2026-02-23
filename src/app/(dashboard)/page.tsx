@@ -2,6 +2,7 @@
 import {
     ArrowDownRight,
     ArrowUpRight,
+    ArrowRightLeft,
     CreditCard,
     DollarSign,
     Landmark,
@@ -244,11 +245,15 @@ export default async function DashboardPage() {
                                                 <div
                                                     className={`flex h-9 w-9 items-center justify-center rounded-full ${tx.type === "income"
                                                         ? "bg-emerald-500/10 text-emerald-500"
-                                                        : "bg-red-500/10 text-red-500"
+                                                        : tx.type === "payment"
+                                                            ? "bg-amber-500/10 text-amber-500"
+                                                            : "bg-red-500/10 text-red-500"
                                                         }`}
                                                 >
                                                     {tx.type === "income" ? (
                                                         <ArrowUpRight className="h-4 w-4" />
+                                                    ) : tx.type === "payment" ? (
+                                                        <ArrowRightLeft className="h-4 w-4" />
                                                     ) : (
                                                         <ArrowDownRight className="h-4 w-4" />
                                                     )}
@@ -264,7 +269,11 @@ export default async function DashboardPage() {
                                                 </div>
                                             </div>
                                             <span
-                                                className={`text-sm font-semibold ${tx.type === "income" ? "text-emerald-500" : "text-red-500"
+                                                className={`text-sm font-semibold ${tx.type === "income"
+                                                    ? "text-emerald-500"
+                                                    : tx.type === "payment"
+                                                        ? "text-amber-500"
+                                                        : "text-red-500"
                                                     }`}
                                             >
                                                 {tx.type === "income" ? "+" : "-"}{formatCurrency(Number(tx.amount))}

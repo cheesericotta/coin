@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
     ArrowDownRight,
     ArrowUpRight,
+    ArrowRightLeft,
     Calendar,
     ChevronLeft,
     ChevronRight,
@@ -306,10 +307,19 @@ export default async function MonthlyViewPage({
                                                 <div className="flex items-center gap-2">
                                                     {tx.type === "income" ? (
                                                         <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                                                    ) : tx.type === "payment" ? (
+                                                        <ArrowRightLeft className="h-4 w-4 text-amber-500" />
                                                     ) : (
                                                         <ArrowDownRight className="h-4 w-4 text-red-500" />
                                                     )}
-                                                    {tx.description || "-"}
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{tx.description || "-"}</span>
+                                                        {tx.type === "payment" && (
+                                                            <Badge variant="outline" className="text-[10px] h-4 px-1 bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                                                Payment
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -341,7 +351,9 @@ export default async function MonthlyViewPage({
                                                 <span
                                                     className={`font-medium ${tx.type === "income"
                                                         ? "text-emerald-500"
-                                                        : "text-red-500"
+                                                        : tx.type === "payment"
+                                                            ? "text-amber-500"
+                                                            : "text-red-500"
                                                         }`}
                                                 >
                                                     {tx.type === "income" ? "+" : "-"}{formatCurrency(Number(tx.amount))}

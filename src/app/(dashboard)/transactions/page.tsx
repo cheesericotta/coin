@@ -20,6 +20,7 @@ import { getCreditCards } from "@/actions/credit-cards";
 import { getIncomeSources } from "@/actions/income-sources";
 import { getBankAccounts } from "@/actions/accounts";
 import { getLoans } from "@/actions/loans";
+import { getInstallments } from "@/actions/installments";
 import { formatCurrency, getCurrentDateInKL } from "@/lib/utils";
 import { TransactionList } from "@/components/transaction-list";
 
@@ -28,13 +29,14 @@ export default async function TransactionsPage() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
 
-    const [transactions, categories, creditCards, incomeSources, bankAccounts, loans] = await Promise.all([
+    const [transactions, categories, creditCards, incomeSources, bankAccounts, loans, installments] = await Promise.all([
         getTransactions(year, month),
         getCategories(),
         getCreditCards(),
         getIncomeSources(),
         getBankAccounts(),
         getLoans(),
+        getInstallments(),
     ]);
 
     const totalIncome = transactions
@@ -42,6 +44,9 @@ export default async function TransactionsPage() {
         .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
     const totalExpenses = transactions
         .filter((t: any) => t.type === "expense")
+        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+    const totalPayments = transactions
+        .filter((t: any) => t.type === "payment")
         .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
 
     return (
@@ -74,7 +79,7 @@ export default async function TransactionsPage() {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-4">
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -96,6 +101,18 @@ export default async function TransactionsPage() {
                         <CardContent>
                             <div className="text-2xl font-bold text-red-500">
                                 -{formatCurrency(totalExpenses)}
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                This Month Payments
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-amber-500">
+                                -{formatCurrency(totalPayments)}
                             </div>
                         </CardContent>
                     </Card>
@@ -127,6 +144,7 @@ export default async function TransactionsPage() {
                             incomeSources={incomeSources}
                             bankAccounts={bankAccounts}
                             loans={loans}
+                            installments={installments}
                         />
                     </CardContent>
                 </Card>

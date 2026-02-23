@@ -25,6 +25,7 @@ export async function getCreditCards() {
                     amount: true,
                     type: true,
                     bankAccountId: true,
+                    installmentId: true,
                 },
             },
         },
@@ -32,19 +33,27 @@ export async function getCreditCards() {
     });
 
     return cards.map((card: any) => {
-        const balance = card.transactions.reduce((acc: number, tx: any) => {
-            // Expenses increase credit card "balance" (debt)
-            // Income (payments) decrease it
-            // Special case: if it has a bankAccountId and type is 'expense', 
-            // it's a payment from an account to the card
-            if (tx.bankAccountId && tx.type === "expense") {
-                return acc - Number(tx.amount);
+        const balances = card.transactions.reduce((acc: { total: number; excludingInstallments: number }, tx: any) => {
+            const amount = Number(tx.amount);
+
+            if (tx.type === "expense") {
+                acc.total += amount;
+                if (!tx.installmentId) {
+                    acc.excludingInstallments += amount;
+                }
+                return acc;
             }
 
-            return tx.type === "expense"
-                ? acc + Number(tx.amount)
-                : acc - Number(tx.amount);
-        }, 0);
+            if (tx.type === "income" || (tx.type === "payment" && tx.bankAccountId)) {
+                acc.total -= amount;
+                if (!tx.installmentId) {
+                    acc.excludingInstallments -= amount;
+                }
+                return acc;
+            }
+
+            return acc;
+        }, { total: 0, excludingInstallments: 0 });
 
         return {
             id: card.id,
@@ -54,7 +63,8 @@ export async function getCreditCards() {
             statementDay: card.statementDay,
             dueDay: card.dueDay,
             color: card.color,
-            balance: balance,
+            balance: balances.total,
+            balanceExcludingInstallments: Math.max(balances.excludingInstallments, 0),
         };
     });
 }
