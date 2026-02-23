@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, PiggyBank, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, PiggyBank, Plus, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -40,7 +40,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { createBudget, deleteBudget } from "@/actions/budgets";
+import { createBudget, deleteBudget, updateBudget } from "@/actions/budgets";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
@@ -76,6 +76,8 @@ export function BudgetsPage({
     categories,
 }: BudgetsPageProps) {
     const [open, setOpen] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
+    const [selectedBudget, setSelectedBudget] = useState<BudgetsPageProps["budgets"][0] | null>(null);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -113,6 +115,25 @@ export function BudgetsPage({
             toast.success("Budget deleted");
             router.refresh();
         }
+    }
+
+    async function handleEditSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        if (!selectedBudget) return;
+        setLoading(true);
+
+        const formData = new FormData(e.currentTarget);
+        const result = await updateBudget(selectedBudget.id, formData);
+
+        if (result.error) {
+            toast.error(result.error);
+        } else {
+            toast.success("Budget updated");
+            setEditOpen(false);
+            setSelectedBudget(null);
+            router.refresh();
+        }
+        setLoading(false);
     }
 
     const totalPlanned = budgets.reduce(
@@ -223,6 +244,62 @@ export function BudgetsPage({
                             </form>
                         </DialogContent>
                     </Dialog>
+
+                    <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Edit Budget</DialogTitle>
+                                <DialogDescription>
+                                    Update the planned amount and type
+                                </DialogDescription>
+                            </DialogHeader>
+                            {selectedBudget && (
+                                <form onSubmit={handleEditSubmit} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Category</Label>
+                                        <Input value={selectedBudget.category.name} disabled />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit-planned">Planned Amount</Label>
+                                        <Input
+                                            id="edit-planned"
+                                            name="planned"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            defaultValue={Number(selectedBudget.planned)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit-type">Type</Label>
+                                        <Select name="type" defaultValue={selectedBudget.type}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="fixed">Fixed</SelectItem>
+                                                <SelectItem value="variable">Variable</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex gap-2 pt-4">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="flex-1"
+                                            onClick={() => setEditOpen(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button type="submit" className="flex-1" disabled={loading}>
+                                            {loading ? "Updating..." : "Update Budget"}
+                                        </Button>
+                                    </div>
+                                </form>
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
                 {/* Summary */}
@@ -281,14 +358,27 @@ export function BudgetsPage({
                                                 {formatCurrency(Number(budget.planned))}
                                             </TableCell>
                                             <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="text-muted-foreground hover:text-destructive"
-                                                    onClick={() => handleDelete(budget.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                <div className="flex justify-end gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="text-muted-foreground hover:text-primary"
+                                                        onClick={() => {
+                                                            setSelectedBudget(budget);
+                                                            setEditOpen(true);
+                                                        }}
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="text-muted-foreground hover:text-destructive"
+                                                        onClick={() => handleDelete(budget.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}

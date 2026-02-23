@@ -120,6 +120,8 @@ model CreditCard {
   name      String
   lastFour  String?  // last 4 digits
   limit     Decimal? @db.Decimal(10, 2)
+  statementDay Int?
+  dueDay      Int?
   color     String?  // hex color for display
   userId    String
   createdAt DateTime @default(now())

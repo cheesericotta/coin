@@ -71,6 +71,7 @@ export function TransactionList({
     const [typeFilter, setTypeFilter] = useState<string>("all");
     const [categoryFilter, setCategoryFilter] = useState<string>("all");
     const [paymentFilter, setPaymentFilter] = useState<string>("all");
+    const [incomeSourceFilter, setIncomeSourceFilter] = useState<string>("all");
 
     const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -79,8 +80,9 @@ export function TransactionList({
     const filteredTransactions = useMemo(() => {
         return initialTransactions.filter((tx) => {
             const matchesSearch = (tx.description || "").toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesType = typeFilter === "all" || tx.type === typeFilter;
+            const matchesType = typeFilter === "all" || tx.type?.toLowerCase() === typeFilter.toLowerCase();
             const matchesCategory = categoryFilter === "all" || tx.categoryId === categoryFilter;
+            const matchesIncomeSource = incomeSourceFilter === "all" || tx.incomeSourceId === incomeSourceFilter;
 
             let matchesPayment = true;
             if (paymentFilter !== "all") {
@@ -92,9 +94,9 @@ export function TransactionList({
                 }
             }
 
-            return matchesSearch && matchesType && matchesCategory && matchesPayment;
+            return matchesSearch && matchesType && matchesCategory && matchesPayment && matchesIncomeSource;
         });
-    }, [initialTransactions, searchTerm, typeFilter, categoryFilter, paymentFilter]);
+    }, [initialTransactions, searchTerm, typeFilter, categoryFilter, paymentFilter, incomeSourceFilter]);
 
     async function handleDelete() {
         if (!deletingId) return;
@@ -112,7 +114,7 @@ export function TransactionList({
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -141,6 +143,19 @@ export function TransactionList({
                         {categories.map((cat) => (
                             <SelectItem key={cat.id} value={cat.id}>
                                 {cat.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select value={incomeSourceFilter} onValueChange={setIncomeSourceFilter}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="All Income Sources" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Income Sources</SelectItem>
+                        {incomeSources.map((source) => (
+                            <SelectItem key={source.id} value={source.id}>
+                                {source.name}
                             </SelectItem>
                         ))}
                     </SelectContent>

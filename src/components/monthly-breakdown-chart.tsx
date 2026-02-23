@@ -59,7 +59,7 @@ export function MonthlyBreakdownChart({ data }: MonthlyBreakdownChartProps) {
                     Income and Expenses trend over the last 6 months
                 </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 pt-6">
+            <CardContent className="flex-1 pt-6 pb-0">
                 <ChartContainer config={chartConfig}>
                     <AreaChart
                         accessibilityLayer
@@ -67,33 +67,64 @@ export function MonthlyBreakdownChart({ data }: MonthlyBreakdownChartProps) {
                         margin={{
                             left: 12,
                             right: 12,
+                            top: 10,
                         }}
                     >
-                        <CartesianGrid vertical={false} />
+                        <defs>
+                            <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
+                                <stop
+                                    offset="5%"
+                                    stopColor="var(--color-income)"
+                                    stopOpacity={0.5}
+                                />
+                                <stop
+                                    offset="95%"
+                                    stopColor="var(--color-income)"
+                                    stopOpacity={0.1}
+                                />
+                            </linearGradient>
+                            <linearGradient id="fillExpenses" x1="0" y1="0" x2="0" y2="1">
+                                <stop
+                                    offset="5%"
+                                    stopColor="var(--color-expenses)"
+                                    stopOpacity={0.5}
+                                />
+                                <stop
+                                    offset="95%"
+                                    stopColor="var(--color-expenses)"
+                                    stopOpacity={0.1}
+                                />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" />
                         <XAxis
                             dataKey="month"
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
-                            tickFormatter={(value) => value}
+                            tickFormatter={(value) => value.slice(0, 3)}
                         />
                         <ChartTooltip
                             cursor={false}
-                            content={<ChartTooltipContent indicator="line" />}
-                        />
-                        <Area
-                            dataKey="expenses"
-                            type="natural"
-                            fill="var(--color-expenses)"
-                            fillOpacity={0.4}
-                            stroke="var(--color-expenses)"
+                            content={<ChartTooltipContent indicator="dot" />}
                         />
                         <Area
                             dataKey="income"
                             type="natural"
-                            fill="var(--color-income)"
-                            fillOpacity={0.4}
+                            fill="url(#fillIncome)"
                             stroke="var(--color-income)"
+                            strokeWidth={2}
+                            dot={{ fill: "var(--color-income)", r: 4, strokeWidth: 2, stroke: "#fff" }}
+                            activeDot={{ r: 6, strokeWidth: 0 }}
+                        />
+                        <Area
+                            dataKey="expenses"
+                            type="natural"
+                            fill="url(#fillExpenses)"
+                            stroke="var(--color-expenses)"
+                            strokeWidth={2}
+                            dot={{ fill: "var(--color-expenses)", r: 4, strokeWidth: 2, stroke: "#fff" }}
+                            activeDot={{ r: 6, strokeWidth: 0 }}
                         />
                         <ChartLegend content={<ChartLegendContent />} />
                     </AreaChart>

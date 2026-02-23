@@ -86,9 +86,9 @@ export async function getTransactions(year: number, month: number) {
 
 export async function createTransaction(formData: FormData) {
     const userId = await getAuthenticatedUserId();
-    const date = new Date(formData.get("date") as string);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
+    const dateStr = formData.get("date") as string;
+    const date = new Date(dateStr);
+    const [year, month] = dateStr.split("-").map(Number);
     const amount = formData.get("amount") as string;
     const description = formData.get("description") as string;
     const notes = formData.get("notes") as string;
@@ -163,7 +163,8 @@ export async function createTransaction(formData: FormData) {
 
 export async function updateTransaction(id: string, formData: FormData) {
     const userId = await getAuthenticatedUserId();
-    const date = new Date(formData.get("date") as string);
+    const dateStr = formData.get("date") as string;
+    const date = new Date(dateStr);
     const amount = new Decimal(formData.get("amount") as string);
     const description = formData.get("description") as string;
     const notes = formData.get("notes") as string;
@@ -174,8 +175,7 @@ export async function updateTransaction(id: string, formData: FormData) {
     const bankAccountId = formData.get("bankAccountId") as string;
     const loanId = formData.get("loanId") as string;
 
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
+    const [year, month] = dateStr.split("-").map(Number);
 
     try {
         const oldTx = await prisma.transaction.findFirst({
@@ -229,12 +229,14 @@ export async function updateTransaction(id: string, formData: FormData) {
                     data: { remainingAmount: { decrement: amount } },
                 });
             }
-            // Note: We don't typically re-apply installment decrement here 
-            // because editing a transaction shouldn't "pay" an installment again 
-            // unless the user intended to. We'll just keep the old installmentId 
-            // if it hasn't changed, or use the one from the old record.
-            // For now, let's just restore the old installment link if it was there.
+            // Preserve installment link; re-apply its effect if the updated tx is still an expense.
             const finalInstallmentId = oldTx.installmentId;
+            if (finalInstallmentId && type === "expense") {
+                await tx.installment.update({
+                    where: { id: finalInstallmentId, userId },
+                    data: { remainingMonths: { decrement: 1 } },
+                });
+            }
 
             // 3. Update transaction
             await tx.transaction.update({
@@ -463,3 +465,5 @@ export async function getYearlyStats(year: number) {
 
     return { monthlyData, totalIncome, totalExpenses, topCategories };
 }
+
+

@@ -58,7 +58,7 @@ export function EditTransactionForm({
         const formData = new FormData(e.currentTarget);
         formData.set("type", type);
         if (date) {
-            formData.set("date", date.toISOString());
+            formData.set("date", `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
         }
 
         // Handle consolidated payment source for expenses
@@ -202,70 +202,72 @@ export function EditTransactionForm({
             {/* Expense specific fields */}
             {type === "expense" && (
                 <>
-                    <div className="space-y-2">
-                        <Label htmlFor="categoryId">Category</Label>
-                        <Select name="categoryId" defaultValue={transaction.categoryId || undefined}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {categories.map((cat) => (
-                                    <SelectItem key={cat.id} value={cat.id}>
-                                        <div className="flex items-center gap-2">
-                                            <div
-                                                className="h-3 w-3 rounded-full"
-                                                style={{ backgroundColor: cat.color || "#6b7280" }}
-                                            />
-                                            {cat.name}
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="paymentSource">Source of Funds</Label>
-                        <Select name="paymentSource" defaultValue={paymentSource} onValueChange={(val) => {
-                            setPaymentSource(val);
-                            if (!val.startsWith("bank:")) setIsCCPayment(false);
-                        }}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="How did you pay?" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {bankAccounts.length > 0 && (
-                                    <>
-                                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                            Accounts & Wallets
-                                        </div>
-                                        {bankAccounts.map((account) => (
-                                            <SelectItem key={account.id} value={`bank:${account.id}`}>
-                                                <div className="flex items-center gap-2">
-                                                    <Landmark className="h-4 w-4 text-muted-foreground" />
-                                                    {account.name}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </>
-                                )}
-                                {creditCards.length > 0 && (
-                                    <>
-                                        <Separator className="my-1" />
-                                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                            Credit Cards
-                                        </div>
-                                        {creditCards.map((card) => (
-                                            <SelectItem key={card.id} value={`card:${card.id}`}>
-                                                <div className="flex items-center gap-2">
-                                                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                                    {card.name}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </>
-                                )}
-                            </SelectContent>
-                        </Select>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="categoryId">Category</Label>
+                            <Select name="categoryId" defaultValue={transaction.categoryId || undefined}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {categories.map((cat) => (
+                                        <SelectItem key={cat.id} value={cat.id}>
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className="h-3 w-3 rounded-full"
+                                                    style={{ backgroundColor: cat.color || "#6b7280" }}
+                                                />
+                                                {cat.name}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="paymentSource">Source of Funds</Label>
+                            <Select name="paymentSource" defaultValue={paymentSource} onValueChange={(val) => {
+                                setPaymentSource(val);
+                                if (!val.startsWith("bank:")) setIsCCPayment(false);
+                            }}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="How did you pay?" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {bankAccounts.length > 0 && (
+                                        <>
+                                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                                Accounts & Wallets
+                                            </div>
+                                            {bankAccounts.map((account) => (
+                                                <SelectItem key={account.id} value={`bank:${account.id}`}>
+                                                    <div className="flex items-center gap-2">
+                                                        <Landmark className="h-4 w-4 text-muted-foreground" />
+                                                        {account.name}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </>
+                                    )}
+                                    {creditCards.length > 0 && (
+                                        <>
+                                            <Separator className="my-1" />
+                                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                                Credit Cards
+                                            </div>
+                                            {creditCards.map((card) => (
+                                                <SelectItem key={card.id} value={`card:${card.id}`}>
+                                                    <div className="flex items-center gap-2">
+                                                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                                        {card.name}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     {paymentSource.startsWith("bank:") && (

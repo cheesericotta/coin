@@ -50,6 +50,8 @@ export async function getCreditCards() {
             name: card.name,
             lastFour: card.lastFour,
             limit: card.limit ? Number(card.limit) : null,
+            statementDay: card.statementDay,
+            dueDay: card.dueDay,
             color: card.color,
             balance: balance,
         };
@@ -62,14 +64,23 @@ export async function createCreditCard(formData: FormData) {
     const lastFour = formData.get("lastFour") as string | null;
     const limit = formData.get("limit") ? Number(formData.get("limit")) : null;
     const color = formData.get("color") as string | null;
+    const statementDay = Number(formData.get("statementDay"));
+    const dueDay = Number(formData.get("dueDay"));
 
     if (!name) {
         return { error: "Credit card name is required" };
     }
 
+    if (!Number.isFinite(statementDay) || statementDay < 1 || statementDay > 31) {
+        return { error: "Statement date must be between 1 and 31" };
+    }
+    if (!Number.isFinite(dueDay) || dueDay < 1 || dueDay > 31) {
+        return { error: "Payment due date must be between 1 and 31" };
+    }
+
     try {
         await prisma.creditCard.create({
-            data: { name, lastFour, limit, color, userId },
+            data: { name, lastFour, limit, statementDay, dueDay, color, userId },
         });
         revalidatePath("/settings");
         return { success: true };
@@ -84,11 +95,20 @@ export async function updateCreditCard(id: string, formData: FormData) {
     const lastFour = formData.get("lastFour") as string | null;
     const limit = formData.get("limit") ? Number(formData.get("limit")) : null;
     const color = formData.get("color") as string | null;
+    const statementDay = Number(formData.get("statementDay"));
+    const dueDay = Number(formData.get("dueDay"));
+
+    if (!Number.isFinite(statementDay) || statementDay < 1 || statementDay > 31) {
+        return { error: "Statement date must be between 1 and 31" };
+    }
+    if (!Number.isFinite(dueDay) || dueDay < 1 || dueDay > 31) {
+        return { error: "Payment due date must be between 1 and 31" };
+    }
 
     try {
         await prisma.creditCard.update({
             where: { id, userId },
-            data: { name, lastFour, limit, color },
+            data: { name, lastFour, limit, statementDay, dueDay, color },
         });
         revalidatePath("/settings");
         return { success: true };

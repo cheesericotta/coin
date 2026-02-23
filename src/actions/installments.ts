@@ -15,6 +15,36 @@ async function getAuthenticatedUserId() {
     return session.user.id;
 }
 
+function getLastDayOfMonth(year: number, monthIndex: number) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+function createStatementDate(year: number, monthIndex: number, statementDay: number) {
+    const day = Math.min(statementDay, getLastDayOfMonth(year, monthIndex));
+    return new Date(year, monthIndex, day);
+}
+
+function getFirstStatementDateAfter(startDate: Date, statementDay: number) {
+    const year = startDate.getFullYear();
+    const monthIndex = startDate.getMonth();
+    const sameMonth = createStatementDate(year, monthIndex, statementDay);
+    if (startDate <= sameMonth) {
+        return sameMonth;
+    }
+    const nextMonthIndex = (monthIndex + 1) % 12;
+    const nextYear = monthIndex === 11 ? year + 1 : year;
+    return createStatementDate(nextYear, nextMonthIndex, statementDay);
+}
+
+function addMonthsKeepingStatementDay(baseDate: Date, statementDay: number, monthsToAdd: number) {
+    const year = baseDate.getFullYear();
+    const monthIndex = baseDate.getMonth();
+    const totalMonths = monthIndex + monthsToAdd;
+    const targetYear = year + Math.floor(totalMonths / 12);
+    const targetMonthIndex = totalMonths % 12;
+    return createStatementDate(targetYear, targetMonthIndex, statementDay);
+}
+
 export async function getInstallments() {
     const userId = await getAuthenticatedUserId();
     const installments = await prisma.installment.findMany({
@@ -39,6 +69,7 @@ export async function createInstallment(formData: FormData) {
     const totalAmount = Number(formData.get("totalAmount"));
     const monthlyPayment = Number(formData.get("monthlyPayment"));
     const totalMonths = Number(formData.get("totalMonths"));
+    const currentBalancePayment = Number(formData.get("currentBalancePayment") || 0);
     const startDate = new Date(formData.get("startDate") as string);
     const creditCardId = formData.get("creditCardId") as string;
     const categoryId = formData.get("categoryId") as string || null;
@@ -48,18 +79,68 @@ export async function createInstallment(formData: FormData) {
     }
 
     try {
-        await prisma.installment.create({
-            data: {
-                name,
-                totalAmount,
-                monthlyPayment,
-                totalMonths,
-                remainingMonths: totalMonths,
-                startDate,
-                creditCardId,
-                categoryId,
-                userId,
-            },
+        const normalizedPaidAmount = Number.isFinite(currentBalancePayment) ? Math.max(currentBalancePayment, 0) : 0;
+        const paidMonths = monthlyPayment > 0 ? Math.floor(normalizedPaidAmount / monthlyPayment) : 0;
+        const remainderAmount = monthlyPayment > 0 ? normalizedPaidAmount - paidMonths * monthlyPayment : 0;
+        const remainingMonths = Math.max(totalMonths - Math.min(paidMonths, totalMonths), 0);
+
+        const creditCard = await prisma.creditCard.findUnique({
+            where: { id: creditCardId, userId },
+            select: { statementDay: true },
+        });
+
+        if (!creditCard?.statementDay) {
+            return { error: "Credit card statement date is required" };
+        }
+
+        const totalPaymentCount = normalizedPaidAmount > 0
+            ? paidMonths + (remainderAmount > 0 ? 1 : 0)
+            : 0;
+
+        const firstStatementDate = getFirstStatementDateAfter(startDate, creditCard.statementDay);
+        const scheduledTransactions = [];
+        if (totalPaymentCount > 0) {
+            for (let i = 0; i < totalPaymentCount; i++) {
+                const amount = i < paidMonths ? monthlyPayment : remainderAmount;
+                const date = addMonthsKeepingStatementDay(firstStatementDate, creditCard.statementDay, i);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const { monthRecord } = await ensureYearAndMonth(userId, year, month);
+                scheduledTransactions.push({ amount, date, monthId: monthRecord.id });
+            }
+        }
+
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const installment = await tx.installment.create({
+                data: {
+                    name,
+                    totalAmount,
+                    monthlyPayment,
+                    totalMonths,
+                    remainingMonths,
+                    startDate,
+                    creditCardId,
+                    categoryId,
+                    userId,
+                },
+            });
+
+            if (scheduledTransactions.length > 0) {
+                for (const scheduled of scheduledTransactions) {
+                    await tx.transaction.create({
+                        data: {
+                            date: scheduled.date,
+                            amount: scheduled.amount,
+                            description: `Installment Balance Payment: ${name}`,
+                            type: "expense",
+                            monthId: scheduled.monthId,
+                            creditCardId,
+                            categoryId,
+                            installmentId: installment.id,
+                        },
+                    });
+                }
+            }
         });
         revalidatePath("/settings/credit-cards");
         revalidatePath("/accounts");

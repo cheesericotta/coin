@@ -107,6 +107,8 @@ export async function importUserData(data: any) {
                             name: card.name,
                             lastFour: card.lastFour,
                             limit: card.limit,
+                            statementDay: card.statementDay ?? null,
+                            dueDay: card.dueDay ?? null,
                             color: card.color,
                             userId,
                         },
@@ -182,6 +184,7 @@ export async function importUserData(data: any) {
                             remainingMonths: inst.remainingMonths,
                             startDate: new Date(inst.startDate),
                             creditCardId: cardMap.get(inst.creditCardId),
+                            categoryId: inst.categoryId ? categoryMap.get(inst.categoryId) : null,
                             userId,
                         },
                     });

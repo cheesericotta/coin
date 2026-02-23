@@ -71,6 +71,8 @@ interface CreditCardsSettingsProps {
         name: string;
         lastFour: string | null;
         limit: number | null;
+        statementDay: number | null;
+        dueDay: number | null;
         color: string | null;
         balance: number;
     }[];
@@ -234,6 +236,32 @@ export function CreditCardsSettings({ creditCards, installments, categories }: C
                                             placeholder="5000.00"
                                         />
                                     </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="statementDay">Statement Day</Label>
+                                            <Input
+                                                id="statementDay"
+                                                name="statementDay"
+                                                type="number"
+                                                min="1"
+                                                max="31"
+                                                placeholder="19"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="dueDay">Payment Due Day</Label>
+                                            <Input
+                                                id="dueDay"
+                                                name="dueDay"
+                                                type="number"
+                                                min="1"
+                                                max="31"
+                                                placeholder="5"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="lastFour">Last 4 Digits (optional)</Label>
                                         <Input
@@ -306,6 +334,32 @@ export function CreditCardsSettings({ creditCards, installments, categories }: C
                                                 defaultValue={selectedCard.limit || ""}
                                                 placeholder="5000.00"
                                             />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="edit-statementDay">Statement Day</Label>
+                                                <Input
+                                                    id="edit-statementDay"
+                                                    name="statementDay"
+                                                    type="number"
+                                                    min="1"
+                                                    max="31"
+                                                    defaultValue={selectedCard.statementDay || ""}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="edit-dueDay">Payment Due Day</Label>
+                                                <Input
+                                                    id="edit-dueDay"
+                                                    name="dueDay"
+                                                    type="number"
+                                                    min="1"
+                                                    max="31"
+                                                    defaultValue={selectedCard.dueDay || ""}
+                                                    required
+                                                />
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="edit-lastFour">Last 4 Digits (optional)</Label>
@@ -498,44 +552,50 @@ export function CreditCardsSettings({ creditCards, installments, categories }: C
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
+                                            <Label htmlFor="inst-paid">Current Balance Payment</Label>
+                                            <Input id="inst-paid" name="currentBalancePayment" type="number" step="0.01" placeholder="0.00" />
+                                        </div>
+                                        <div className="space-y-2">
                                             <Label htmlFor="inst-months">Total Months</Label>
                                             <Input id="inst-months" name="totalMonths" type="number" required />
                                         </div>
-                                        <div className="space-y-2 flex flex-col">
-                                            <Label className="mb-2">Start Date</Label>
-                                            <DatePicker date={installmentDate} setDate={setInstallmentDate} />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label className="mb-2">Start Date</Label>
+                                        <DatePicker date={installmentDate} setDate={setInstallmentDate} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="inst-card">Credit Card</Label>
+                                            <Select name="creditCardId" required>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a card" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {creditCards.map(card => (
+                                                        <SelectItem key={card.id} value={card.id}>{card.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="inst-card">Credit Card</Label>
-                                        <Select name="creditCardId" required>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a card" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {creditCards.map(card => (
-                                                    <SelectItem key={card.id} value={card.id}>{card.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="inst-category">Category</Label>
-                                        <Select name="categoryId">
-                                            <SelectTrigger id="inst-category">
-                                                <SelectValue placeholder="Select a category" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {categories.map(cat => (
-                                                    <SelectItem key={cat.id} value={cat.id}>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color || "#6b7280" }} />
-                                                            {cat.name}
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="inst-category">Category</Label>
+                                            <Select name="categoryId">
+                                                <SelectTrigger id="inst-category">
+                                                    <SelectValue placeholder="Select a category" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {categories.map(cat => (
+                                                        <SelectItem key={cat.id} value={cat.id}>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color || "#6b7280" }} />
+                                                                {cat.name}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
                                     <div className="flex gap-2 pt-4">
                                         <Button type="button" variant="outline" className="flex-1" onClick={() => setInstallmentOpen(false)}>Cancel</Button>
