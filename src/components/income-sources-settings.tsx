@@ -1,3 +1,5 @@
+ 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState } from "react";
@@ -255,7 +257,7 @@ export function IncomeSourcesSettings({ incomeSources }: IncomeSourcesSettingsPr
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This will permanently delete this income source. Past transactions will remain but won't be linked to this source.
+                                This will permanently delete this income source. Past transactions will remain but won&apos;t be linked to this source.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

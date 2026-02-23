@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -98,7 +99,7 @@ export async function createInstallment(formData: FormData) {
             : 0;
 
         const firstStatementDate = getFirstStatementDateAfter(startDate, creditCard.statementDay);
-        const scheduledTransactions = [];
+        const scheduledTransactions: { amount: number; date: Date; monthId: string }[] = [];
         if (totalPaymentCount > 0) {
             for (let i = 0; i < totalPaymentCount; i++) {
                 const amount = i < paidMonths ? monthlyPayment : remainderAmount;

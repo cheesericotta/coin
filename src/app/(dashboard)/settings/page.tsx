@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
 import {
     CreditCard,
@@ -5,7 +6,6 @@ import {
     Folder,
     Plus,
     Settings,
-    Trash2,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";

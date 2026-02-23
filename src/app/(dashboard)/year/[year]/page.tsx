@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";

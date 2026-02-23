@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { getCurrentDateInKL } from "@/lib/utils";
+import { BankAccount, Prisma } from "@prisma/client";
 
 async function getAuthenticatedUserId() {
     const session = await auth();
@@ -20,7 +21,7 @@ export async function getBankAccounts() {
         orderBy: { name: "asc" },
     });
 
-    return accounts.map((account: any) => ({
+    return accounts.map((account: BankAccount) => ({
         ...account,
         balance: Number(account.balance),
         targetAmount: account.targetAmount ? Number(account.targetAmount) : null,
@@ -117,7 +118,7 @@ export async function getSavingsGrowthStats() {
 
     const startOfYear = new Date(currentYear, 0, 1);
 
-    const stats = await Promise.all(accounts.map(async (account: any) => {
+    const stats = await Promise.all(accounts.map(async (account: BankAccount) => {
         const transactions = await prisma.transaction.findMany({
             where: {
                 bankAccountId: account.id,
@@ -131,7 +132,7 @@ export async function getSavingsGrowthStats() {
             },
         });
 
-        const growthAmount = transactions.reduce((sum: number, tx: any) => {
+        const growthAmount = transactions.reduce((sum: number, tx: { amount: Prisma.Decimal; type: string }) => {
             return tx.type === "income"
                 ? sum + Number(tx.amount)
                 : sum - Number(tx.amount);

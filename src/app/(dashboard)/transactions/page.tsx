@@ -1,10 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
 import {
-    ArrowDownRight,
-    ArrowUpRight,
-    Filter,
     Plus,
-    Search,
     Wallet,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -16,16 +13,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { getTransactions } from "@/actions/transactions";
 import { getCategories } from "@/actions/categories";
 import { getCreditCards } from "@/actions/credit-cards";

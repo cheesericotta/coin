@@ -1,0 +1,36 @@
+﻿
+> coin@0.1.0 lint
+> eslint
+
+
+C:\Users\hafiz\projects\coin\src\components\accounts-dashboard.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\hafiz\projects\coin\src\components\categories-settings.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\hafiz\projects\coin\src\components\credit-cards-settings.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\hafiz\projects\coin\src\components\data-management.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\hafiz\projects\coin\src\components\income-sources-settings.tsx
+    1:1    warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  260:119  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                        react/no-unescaped-entities
+
+C:\Users\hafiz\projects\coin\src\components\loans-dashboard.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\hafiz\projects\coin\src\components\login-form.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\hafiz\projects\coin\src\components\monthly-breakdown-chart.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\hafiz\projects\coin\src\components\new-transaction-form.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+Γ£û 10 problems (1 error, 9 warnings)
+  0 errors and 9 warnings potentially fixable with the `--fix` option.
+

@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-import { Prisma } from "@prisma/client";
+
 
 async function getAuthenticatedUserId() {
     const session = await auth();

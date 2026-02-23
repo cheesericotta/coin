@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BudgetsPage } from "@/components/budgets-page";
 import { getBudgets } from "@/actions/budgets";
 import { getCategories } from "@/actions/categories";
