@@ -51,16 +51,33 @@ export async function getInstallments() {
     const installments = await prisma.installment.findMany({
         where: { userId },
         include: {
-            creditCard: true,
-            category: true,
+            creditCard: {
+                select: {
+                    name: true,
+                },
+            },
+            category: {
+                select: {
+                    name: true,
+                    color: true,
+                },
+            },
         },
         orderBy: { startDate: "desc" },
     });
 
     return installments.map((inst: any) => ({
-        ...inst,
+        id: inst.id,
+        name: inst.name,
         totalAmount: Number(inst.totalAmount),
         monthlyPayment: Number(inst.monthlyPayment),
+        totalMonths: inst.totalMonths,
+        remainingMonths: inst.remainingMonths,
+        startDate: inst.startDate.toISOString(),
+        creditCardId: inst.creditCardId,
+        categoryId: inst.categoryId,
+        creditCard: inst.creditCard,
+        category: inst.category,
     }));
 }
 
