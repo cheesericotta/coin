@@ -163,7 +163,21 @@ export async function createInstallment(formData: FormData) {
         revalidatePath("/settings/credit-cards");
         revalidatePath("/accounts");
         return { success: true };
-    } catch {
+    } catch (e) {
+        console.error("Create installment error:", e);
+
+        if (e instanceof Prisma.PrismaClientKnownRequestError) {
+            if (e.code === "P2003") {
+                return { error: "Invalid related record (card/category/month) in database." };
+            }
+            if (e.code === "P2021") {
+                return { error: "Database schema is out of date. Run Prisma migrations." };
+            }
+            if (e.code === "P2022") {
+                return { error: "Database column mismatch. Run Prisma migrations." };
+            }
+        }
+
         return { error: "Failed to create installment" };
     }
 }
