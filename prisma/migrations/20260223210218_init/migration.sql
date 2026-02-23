@@ -1,1 +1,281 @@
--- CreateTable CREATE TABLE `User` (     `id` VARCHAR(191) NOT NULL,     `name` VARCHAR(191) NULL,     `email` VARCHAR(191) NOT NULL,     `emailVerified` DATETIME(3) NULL,     `image` VARCHAR(191) NULL,     `password` VARCHAR(191) NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      UNIQUE INDEX `User_email_key`(`email`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Account` (     `id` VARCHAR(191) NOT NULL,     `userId` VARCHAR(191) NOT NULL,     `type` VARCHAR(191) NOT NULL,     `provider` VARCHAR(191) NOT NULL,     `providerAccountId` VARCHAR(191) NOT NULL,     `refresh_token` TEXT NULL,     `access_token` TEXT NULL,     `expires_at` INTEGER NULL,     `token_type` VARCHAR(191) NULL,     `scope` VARCHAR(191) NULL,     `id_token` TEXT NULL,     `session_state` VARCHAR(191) NULL,      UNIQUE INDEX `Account_provider_providerAccountId_key`(`provider`, `providerAccountId`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Session` (     `id` VARCHAR(191) NOT NULL,     `sessionToken` VARCHAR(191) NOT NULL,     `userId` VARCHAR(191) NOT NULL,     `expires` DATETIME(3) NOT NULL,      UNIQUE INDEX `Session_sessionToken_key`(`sessionToken`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `VerificationToken` (     `identifier` VARCHAR(191) NOT NULL,     `token` VARCHAR(191) NOT NULL,     `expires` DATETIME(3) NOT NULL,      UNIQUE INDEX `VerificationToken_token_key`(`token`),     UNIQUE INDEX `VerificationToken_identifier_token_key`(`identifier`, `token`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Year` (     `id` VARCHAR(191) NOT NULL,     `year` INTEGER NOT NULL,     `userId` VARCHAR(191) NOT NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      UNIQUE INDEX `Year_userId_year_key`(`userId`, `year`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Month` (     `id` VARCHAR(191) NOT NULL,     `month` INTEGER NOT NULL,     `yearId` VARCHAR(191) NOT NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      UNIQUE INDEX `Month_yearId_month_key`(`yearId`, `month`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Category` (     `id` VARCHAR(191) NOT NULL,     `name` VARCHAR(191) NOT NULL,     `icon` VARCHAR(191) NULL,     `color` VARCHAR(191) NULL,     `userId` VARCHAR(191) NOT NULL,     `isDefault` BOOLEAN NOT NULL DEFAULT false,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      UNIQUE INDEX `Category_userId_name_key`(`userId`, `name`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `CreditCard` (     `id` VARCHAR(191) NOT NULL,     `name` VARCHAR(191) NOT NULL,     `lastFour` VARCHAR(191) NULL,     `limit` DECIMAL(10, 2) NULL,     `statementDay` INTEGER NULL,     `dueDay` INTEGER NULL,     `color` VARCHAR(191) NULL,     `userId` VARCHAR(191) NOT NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      UNIQUE INDEX `CreditCard_userId_name_key`(`userId`, `name`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Installment` (     `id` VARCHAR(191) NOT NULL,     `name` VARCHAR(191) NOT NULL,     `totalAmount` DECIMAL(10, 2) NOT NULL,     `monthlyPayment` DECIMAL(10, 2) NOT NULL,     `totalMonths` INTEGER NOT NULL,     `remainingMonths` INTEGER NOT NULL,     `startDate` DATETIME(3) NOT NULL,     `creditCardId` VARCHAR(191) NOT NULL,     `categoryId` VARCHAR(191) NULL,     `userId` VARCHAR(191) NOT NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      INDEX `Installment_userId_idx`(`userId`),     INDEX `Installment_creditCardId_idx`(`creditCardId`),     INDEX `Installment_categoryId_idx`(`categoryId`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `IncomeSource` (     `id` VARCHAR(191) NOT NULL,     `name` VARCHAR(191) NOT NULL,     `type` VARCHAR(191) NOT NULL,     `userId` VARCHAR(191) NOT NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      UNIQUE INDEX `IncomeSource_userId_name_key`(`userId`, `name`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Budget` (     `id` VARCHAR(191) NOT NULL,     `planned` DECIMAL(10, 2) NOT NULL,     `type` VARCHAR(191) NOT NULL,     `monthId` VARCHAR(191) NOT NULL,     `categoryId` VARCHAR(191) NOT NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      UNIQUE INDEX `Budget_monthId_categoryId_key`(`monthId`, `categoryId`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Transaction` (     `id` VARCHAR(191) NOT NULL,     `date` DATETIME(3) NOT NULL,     `amount` DECIMAL(10, 2) NOT NULL,     `description` VARCHAR(191) NULL,     `notes` TEXT NULL,     `type` VARCHAR(191) NOT NULL,     `monthId` VARCHAR(191) NOT NULL,     `categoryId` VARCHAR(191) NULL,     `creditCardId` VARCHAR(191) NULL,     `incomeSourceId` VARCHAR(191) NULL,     `bankAccountId` VARCHAR(191) NULL,     `loanId` VARCHAR(191) NULL,     `installmentId` VARCHAR(191) NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      INDEX `Transaction_monthId_idx`(`monthId`),     INDEX `Transaction_categoryId_idx`(`categoryId`),     INDEX `Transaction_date_idx`(`date`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `BankAccount` (     `id` VARCHAR(191) NOT NULL,     `name` VARCHAR(191) NOT NULL,     `type` VARCHAR(191) NOT NULL DEFAULT 'calcu',     `balance` DECIMAL(10, 2) NOT NULL DEFAULT 0,     `isSavings` BOOLEAN NOT NULL DEFAULT false,     `targetAmount` DECIMAL(10, 2) NULL,     `growthRate` DECIMAL(5, 2) NULL,     `targetDate` DATETIME(3) NULL,     `userId` VARCHAR(191) NOT NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      INDEX `BankAccount_userId_idx`(`userId`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- CreateTable CREATE TABLE `Loan` (     `id` VARCHAR(191) NOT NULL,     `name` VARCHAR(191) NOT NULL,     `totalAmount` DECIMAL(10, 2) NOT NULL,     `remainingAmount` DECIMAL(10, 2) NOT NULL,     `interestRate` DECIMAL(5, 2) NOT NULL,     `monthlyPayment` DECIMAL(10, 2) NULL,     `dueDate` INTEGER NULL,     `userId` VARCHAR(191) NOT NULL,     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),     `updatedAt` DATETIME(3) NOT NULL,      INDEX `Loan_userId_idx`(`userId`),     PRIMARY KEY (`id`) ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- AddForeignKey ALTER TABLE `Account` ADD CONSTRAINT `Account_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Session` ADD CONSTRAINT `Session_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Year` ADD CONSTRAINT `Year_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Month` ADD CONSTRAINT `Month_yearId_fkey` FOREIGN KEY (`yearId`) REFERENCES `Year`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Category` ADD CONSTRAINT `Category_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `CreditCard` ADD CONSTRAINT `CreditCard_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Installment` ADD CONSTRAINT `Installment_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Installment` ADD CONSTRAINT `Installment_creditCardId_fkey` FOREIGN KEY (`creditCardId`) REFERENCES `CreditCard`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Installment` ADD CONSTRAINT `Installment_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `IncomeSource` ADD CONSTRAINT `IncomeSource_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Budget` ADD CONSTRAINT `Budget_monthId_fkey` FOREIGN KEY (`monthId`) REFERENCES `Month`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Budget` ADD CONSTRAINT `Budget_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_monthId_fkey` FOREIGN KEY (`monthId`) REFERENCES `Month`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_creditCardId_fkey` FOREIGN KEY (`creditCardId`) REFERENCES `CreditCard`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_incomeSourceId_fkey` FOREIGN KEY (`incomeSourceId`) REFERENCES `IncomeSource`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_bankAccountId_fkey` FOREIGN KEY (`bankAccountId`) REFERENCES `BankAccount`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_loanId_fkey` FOREIGN KEY (`loanId`) REFERENCES `Loan`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_installmentId_fkey` FOREIGN KEY (`installmentId`) REFERENCES `Installment`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `BankAccount` ADD CONSTRAINT `BankAccount_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;  -- AddForeignKey ALTER TABLE `Loan` ADD CONSTRAINT `Loan_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE; 
+-- CreateTable
+CREATE TABLE `User` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NULL,
+    `email` VARCHAR(191) NOT NULL,
+    `emailVerified` DATETIME(3) NULL,
+    `image` VARCHAR(191) NULL,
+    `password` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `User_email_key`(`email`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Account` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `provider` VARCHAR(191) NOT NULL,
+    `providerAccountId` VARCHAR(191) NOT NULL,
+    `refresh_token` TEXT NULL,
+    `access_token` TEXT NULL,
+    `expires_at` INTEGER NULL,
+    `token_type` VARCHAR(191) NULL,
+    `scope` VARCHAR(191) NULL,
+    `id_token` TEXT NULL,
+    `session_state` VARCHAR(191) NULL,
+
+    UNIQUE INDEX `Account_provider_providerAccountId_key`(`provider`, `providerAccountId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Session` (
+    `id` VARCHAR(191) NOT NULL,
+    `sessionToken` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `expires` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `Session_sessionToken_key`(`sessionToken`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `VerificationToken` (
+    `identifier` VARCHAR(191) NOT NULL,
+    `token` VARCHAR(191) NOT NULL,
+    `expires` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `VerificationToken_token_key`(`token`),
+    UNIQUE INDEX `VerificationToken_identifier_token_key`(`identifier`, `token`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Year` (
+    `id` VARCHAR(191) NOT NULL,
+    `year` INTEGER NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `Year_userId_year_key`(`userId`, `year`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Month` (
+    `id` VARCHAR(191) NOT NULL,
+    `month` INTEGER NOT NULL,
+    `yearId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `Month_yearId_month_key`(`yearId`, `month`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Category` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `icon` VARCHAR(191) NULL,
+    `color` VARCHAR(191) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `isDefault` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `Category_userId_name_key`(`userId`, `name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `CreditCard` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `lastFour` VARCHAR(191) NULL,
+    `limit` DECIMAL(10, 2) NULL,
+    `statementDay` INTEGER NULL,
+    `dueDay` INTEGER NULL,
+    `color` VARCHAR(191) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `CreditCard_userId_name_key`(`userId`, `name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Installment` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `totalAmount` DECIMAL(10, 2) NOT NULL,
+    `monthlyPayment` DECIMAL(10, 2) NOT NULL,
+    `totalMonths` INTEGER NOT NULL,
+    `remainingMonths` INTEGER NOT NULL,
+    `startDate` DATETIME(3) NOT NULL,
+    `creditCardId` VARCHAR(191) NOT NULL,
+    `categoryId` VARCHAR(191) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `Installment_userId_idx`(`userId`),
+    INDEX `Installment_creditCardId_idx`(`creditCardId`),
+    INDEX `Installment_categoryId_idx`(`categoryId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `IncomeSource` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `IncomeSource_userId_name_key`(`userId`, `name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Budget` (
+    `id` VARCHAR(191) NOT NULL,
+    `planned` DECIMAL(10, 2) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `monthId` VARCHAR(191) NOT NULL,
+    `categoryId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `Budget_monthId_categoryId_key`(`monthId`, `categoryId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Transaction` (
+    `id` VARCHAR(191) NOT NULL,
+    `date` DATETIME(3) NOT NULL,
+    `amount` DECIMAL(10, 2) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `notes` TEXT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `monthId` VARCHAR(191) NOT NULL,
+    `categoryId` VARCHAR(191) NULL,
+    `creditCardId` VARCHAR(191) NULL,
+    `incomeSourceId` VARCHAR(191) NULL,
+    `bankAccountId` VARCHAR(191) NULL,
+    `loanId` VARCHAR(191) NULL,
+    `installmentId` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `Transaction_monthId_idx`(`monthId`),
+    INDEX `Transaction_categoryId_idx`(`categoryId`),
+    INDEX `Transaction_date_idx`(`date`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `BankAccount` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL DEFAULT 'calcu',
+    `balance` DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    `isSavings` BOOLEAN NOT NULL DEFAULT false,
+    `targetAmount` DECIMAL(10, 2) NULL,
+    `growthRate` DECIMAL(5, 2) NULL,
+    `targetDate` DATETIME(3) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `BankAccount_userId_idx`(`userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Loan` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `totalAmount` DECIMAL(10, 2) NOT NULL,
+    `remainingAmount` DECIMAL(10, 2) NOT NULL,
+    `interestRate` DECIMAL(5, 2) NOT NULL,
+    `monthlyPayment` DECIMAL(10, 2) NULL,
+    `dueDate` INTEGER NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `Loan_userId_idx`(`userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `Account` ADD CONSTRAINT `Account_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Session` ADD CONSTRAINT `Session_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Year` ADD CONSTRAINT `Year_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Month` ADD CONSTRAINT `Month_yearId_fkey` FOREIGN KEY (`yearId`) REFERENCES `Year`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Category` ADD CONSTRAINT `Category_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `CreditCard` ADD CONSTRAINT `CreditCard_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Installment` ADD CONSTRAINT `Installment_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Installment` ADD CONSTRAINT `Installment_creditCardId_fkey` FOREIGN KEY (`creditCardId`) REFERENCES `CreditCard`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Installment` ADD CONSTRAINT `Installment_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `IncomeSource` ADD CONSTRAINT `IncomeSource_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Budget` ADD CONSTRAINT `Budget_monthId_fkey` FOREIGN KEY (`monthId`) REFERENCES `Month`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Budget` ADD CONSTRAINT `Budget_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_monthId_fkey` FOREIGN KEY (`monthId`) REFERENCES `Month`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_creditCardId_fkey` FOREIGN KEY (`creditCardId`) REFERENCES `CreditCard`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_incomeSourceId_fkey` FOREIGN KEY (`incomeSourceId`) REFERENCES `IncomeSource`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_bankAccountId_fkey` FOREIGN KEY (`bankAccountId`) REFERENCES `BankAccount`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_loanId_fkey` FOREIGN KEY (`loanId`) REFERENCES `Loan`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_installmentId_fkey` FOREIGN KEY (`installmentId`) REFERENCES `Installment`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `BankAccount` ADD CONSTRAINT `BankAccount_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Loan` ADD CONSTRAINT `Loan_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
