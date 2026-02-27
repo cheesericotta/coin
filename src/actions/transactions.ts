@@ -13,6 +13,10 @@ function isDebtPaymentType(type: string) {
     return type === "payment" || type === "expense";
 }
 
+function isTransferType(type: string) {
+    return type === "transfer";
+}
+
 function getNextMonth(year: number, month: number) {
     if (month === 12) {
         return { year: year + 1, month: 1 };
@@ -90,6 +94,7 @@ export async function getTransactions(year: number, month: number) {
                     creditCard: true,
                     incomeSource: true,
                     bankAccount: true,
+                    transferToAccount: true,
                     loan: true,
                 },
                 orderBy: { date: "desc" },
@@ -111,6 +116,12 @@ export async function getTransactions(year: number, month: number) {
             balance: Number(tx.bankAccount.balance),
             targetAmount: tx.bankAccount.targetAmount ? Number(tx.bankAccount.targetAmount) : null,
             growthRate: tx.bankAccount.growthRate ? Number(tx.bankAccount.growthRate) : null,
+        } : null,
+        transferToAccount: tx.transferToAccount ? {
+            ...tx.transferToAccount,
+            balance: Number(tx.transferToAccount.balance),
+            targetAmount: tx.transferToAccount.targetAmount ? Number(tx.transferToAccount.targetAmount) : null,
+            growthRate: tx.transferToAccount.growthRate ? Number(tx.transferToAccount.growthRate) : null,
         } : null,
         loan: tx.loan ? {
             ...tx.loan,
@@ -135,6 +146,7 @@ export async function createTransaction(formData: FormData) {
     const creditCardId = formData.get("creditCardId") as string;
     const incomeSourceId = formData.get("incomeSourceId") as string;
     const bankAccountId = formData.get("bankAccountId") as string;
+    const transferToAccountId = formData.get("transferToAccountId") as string;
 
     const loanId = formData.get("loanId") as string;
     const installmentId = formData.get("installmentId") as string;
@@ -142,8 +154,16 @@ export async function createTransaction(formData: FormData) {
     if (!amount || !type) {
         return { error: "Amount and type are required" };
     }
-    if (!["income", "expense", "payment"].includes(type)) {
+    if (!["income", "expense", "payment", "transfer"].includes(type)) {
         return { error: "Invalid transaction type" };
+    }
+    if (isTransferType(type)) {
+        if (!bankAccountId || !transferToAccountId) {
+            return { error: "Transfer requires both source and destination accounts" };
+        }
+        if (bankAccountId === transferToAccountId) {
+            return { error: "Source and destination accounts must be different" };
+        }
     }
 
     const budgetPeriod = getBudgetPeriodForTransaction({
@@ -168,13 +188,27 @@ export async function createTransaction(formData: FormData) {
                     creditCardId: creditCardId || null,
                     incomeSourceId: incomeSourceId || null,
                     bankAccountId: bankAccountId || null,
+                    transferToAccountId: transferToAccountId || null,
                     loanId: loanId || null,
                     installmentId: installmentId || null,
                 },
             });
 
-            // Update Bank Account balance if linked
-            if (bankAccountId) {
+            if (isTransferType(type)) {
+                await tx.bankAccount.update({
+                    where: { id: bankAccountId, userId },
+                    data: {
+                        balance: { decrement: new Decimal(amount) },
+                    },
+                });
+                await tx.bankAccount.update({
+                    where: { id: transferToAccountId, userId },
+                    data: {
+                        balance: { increment: new Decimal(amount) },
+                    },
+                });
+            } else if (bankAccountId) {
+                // Update Bank Account balance if linked
                 await tx.bankAccount.update({
                     where: { id: bankAccountId, userId },
                     data: {
@@ -231,7 +265,9 @@ export async function updateTransaction(id: string, formData: FormData) {
     const creditCardId = formData.get("creditCardId") as string;
     const incomeSourceId = formData.get("incomeSourceId") as string;
     const bankAccountId = formData.get("bankAccountId") as string;
+    const transferToAccountId = formData.get("transferToAccountId") as string;
     const loanId = formData.get("loanId") as string;
+    const installmentId = formData.get("installmentId") as string;
 
     const { year, month, day } = getDateParts(dateStr);
 
@@ -242,6 +278,14 @@ export async function updateTransaction(id: string, formData: FormData) {
         });
 
         if (!oldTx) return { error: "Transaction not found" };
+        if (isTransferType(type)) {
+            if (!bankAccountId || !transferToAccountId) {
+                return { error: "Transfer requires both source and destination accounts" };
+            }
+            if (bankAccountId === transferToAccountId) {
+                return { error: "Source and destination accounts must be different" };
+            }
+        }
 
         const budgetPeriod = getBudgetPeriodForTransaction({
             year,
@@ -253,7 +297,20 @@ export async function updateTransaction(id: string, formData: FormData) {
 
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Reverse OLD effects
-            if (oldTx.bankAccountId) {
+            if (oldTx.type === "transfer" && oldTx.bankAccountId && oldTx.transferToAccountId) {
+                await tx.bankAccount.update({
+                    where: { id: oldTx.bankAccountId, userId },
+                    data: {
+                        balance: { increment: oldTx.amount },
+                    },
+                });
+                await tx.bankAccount.update({
+                    where: { id: oldTx.transferToAccountId, userId },
+                    data: {
+                        balance: { decrement: oldTx.amount },
+                    },
+                });
+            } else if (oldTx.bankAccountId) {
                 await tx.bankAccount.update({
                     where: { id: oldTx.bankAccountId, userId },
                     data: {
@@ -277,7 +334,20 @@ export async function updateTransaction(id: string, formData: FormData) {
             }
 
             // 2. Apply NEW effects
-            if (bankAccountId) {
+            if (isTransferType(type) && bankAccountId && transferToAccountId) {
+                await tx.bankAccount.update({
+                    where: { id: bankAccountId, userId },
+                    data: {
+                        balance: { decrement: amount },
+                    },
+                });
+                await tx.bankAccount.update({
+                    where: { id: transferToAccountId, userId },
+                    data: {
+                        balance: { increment: amount },
+                    },
+                });
+            } else if (bankAccountId) {
                 await tx.bankAccount.update({
                     where: { id: bankAccountId, userId },
                     data: {
@@ -293,7 +363,9 @@ export async function updateTransaction(id: string, formData: FormData) {
                     data: { remainingAmount: { decrement: amount } },
                 });
             }
-            const finalInstallmentId = (formData.get("installmentId") as string) || oldTx.installmentId;
+            const finalInstallmentId = type === "payment"
+                ? (installmentId || oldTx.installmentId)
+                : null;
             if (finalInstallmentId && isDebtPaymentType(type)) {
                 await tx.installment.update({
                     where: { id: finalInstallmentId, userId },
@@ -315,6 +387,7 @@ export async function updateTransaction(id: string, formData: FormData) {
                     creditCardId: creditCardId || null,
                     incomeSourceId: incomeSourceId || null,
                     bankAccountId: bankAccountId || null,
+                    transferToAccountId: transferToAccountId || null,
                     loanId: loanId || null,
                     installmentId: finalInstallmentId,
                 },
@@ -350,13 +423,26 @@ export async function deleteTransaction(id: string) {
 
         if (!transaction) return { error: "Transaction not found" };
 
-        const { amount, type, bankAccountId, loanId, installmentId } = transaction;
+        const { amount, type, bankAccountId, transferToAccountId, loanId, installmentId } = transaction;
         const year = transaction.month.year.year;
         const month = transaction.month.month;
 
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Reverse bank account balance
-            if (bankAccountId) {
+            if (type === "transfer" && bankAccountId && transferToAccountId) {
+                await tx.bankAccount.update({
+                    where: { id: bankAccountId, userId },
+                    data: {
+                        balance: { increment: amount },
+                    },
+                });
+                await tx.bankAccount.update({
+                    where: { id: transferToAccountId, userId },
+                    data: {
+                        balance: { decrement: amount },
+                    },
+                });
+            } else if (bankAccountId) {
                 await tx.bankAccount.update({
                     where: { id: bankAccountId, userId },
                     data: {

@@ -121,7 +121,10 @@ export async function getSavingsGrowthStats() {
     const stats = await Promise.all(accounts.map(async (account: BankAccount) => {
         const transactions = await prisma.transaction.findMany({
             where: {
-                bankAccountId: account.id,
+                OR: [
+                    { bankAccountId: account.id },
+                    { transferToAccountId: account.id },
+                ],
                 date: {
                     gte: startOfYear,
                 },
@@ -129,10 +132,21 @@ export async function getSavingsGrowthStats() {
             select: {
                 amount: true,
                 type: true,
+                bankAccountId: true,
+                transferToAccountId: true,
             },
         });
 
-        const growthAmount = transactions.reduce((sum: number, tx: { amount: Prisma.Decimal; type: string }) => {
+        const growthAmount = transactions.reduce((sum: number, tx: { amount: Prisma.Decimal; type: string; bankAccountId: string | null; transferToAccountId: string | null }) => {
+            if (tx.type === "transfer") {
+                if (tx.bankAccountId === account.id) {
+                    return sum - Number(tx.amount);
+                }
+                if (tx.transferToAccountId === account.id) {
+                    return sum + Number(tx.amount);
+                }
+                return sum;
+            }
             return tx.type === "income"
                 ? sum + Number(tx.amount)
                 : sum - Number(tx.amount);

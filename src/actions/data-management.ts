@@ -244,6 +244,7 @@ export async function importUserData(data: any) {
                     creditCardId: txData.creditCardId ?? null,
                     incomeSourceId: txData.incomeSourceId ?? null,
                     bankAccountId: txData.bankAccountId ?? null,
+                    transferToAccountId: txData.transferToAccountId ?? null,
                     loanId: txData.loanId ?? null,
                     installmentId: txData.installmentId ?? null,
                 })),

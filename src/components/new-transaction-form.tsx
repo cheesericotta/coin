@@ -37,7 +37,7 @@ interface NewTransactionFormProps {
     installments: { id: string; name: string; monthlyPayment: number; creditCardId: string }[];
 }
 
-type TransactionType = "expense" | "payment" | "income";
+type TransactionType = "expense" | "payment" | "income" | "transfer";
 
 function formatDateToYyyyMmDd(date: Date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -59,6 +59,8 @@ export function NewTransactionForm({
     const [sourceOfFunds, setSourceOfFunds] = useState("");
     const [incomeDestination, setIncomeDestination] = useState("");
     const [paymentTarget, setPaymentTarget] = useState("");
+    const [transferFrom, setTransferFrom] = useState("");
+    const [transferTo, setTransferTo] = useState("");
     const [amount, setAmount] = useState("");
     const [loading, setLoading] = useState(false);
     const [date, setDate] = useState<Date | undefined>(getCurrentDateInKL());
@@ -143,6 +145,7 @@ export function NewTransactionForm({
             formData.delete("categoryId");
             formData.delete("loanId");
             formData.delete("installmentId");
+            formData.delete("transferToAccountId");
 
             const destination = formData.get("incomeDestination") as string;
             if (destination) {
@@ -154,6 +157,23 @@ export function NewTransactionForm({
                     formData.set("creditCardId", id);
                     formData.delete("bankAccountId");
                 }
+            }
+        }
+
+        if (type === "transfer") {
+            formData.delete("categoryId");
+            formData.delete("incomeSourceId");
+            formData.delete("loanId");
+            formData.delete("installmentId");
+            formData.delete("creditCardId");
+
+            const from = formData.get("transferFrom") as string;
+            const to = formData.get("transferTo") as string;
+            if (from) {
+                formData.set("bankAccountId", from);
+            }
+            if (to) {
+                formData.set("transferToAccountId", to);
             }
         }
 
@@ -188,12 +208,12 @@ export function NewTransactionForm({
                     <CardHeader>
                         <CardTitle>Add Transaction</CardTitle>
                         <CardDescription>
-                            Record an income, expense, or payment
+                            Record an income, expense, payment, or transfer
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid gap-2 md:grid-cols-3">
+                            <div className="grid gap-2 md:grid-cols-4">
                                 <Button
                                     type="button"
                                     variant={type === "expense" ? "default" : "outline"}
@@ -217,6 +237,14 @@ export function NewTransactionForm({
                                     onClick={() => setType("income")}
                                 >
                                     Income
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={type === "transfer" ? "default" : "outline"}
+                                    className={type === "transfer" ? "bg-sky-500 hover:bg-sky-600" : ""}
+                                    onClick={() => setType("transfer")}
+                                >
+                                    Transfer
                                 </Button>
                             </div>
 
@@ -442,6 +470,52 @@ export function NewTransactionForm({
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                </>
+                            )}
+
+                            {type === "transfer" && (
+                                <>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="transferFrom">From Account</Label>
+                                            <Select name="transferFrom" value={transferFrom} onValueChange={setTransferFrom} required>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select source account" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {bankAccounts.map((account) => (
+                                                        <SelectItem key={account.id} value={account.id}>
+                                                            <div className="flex items-center gap-2">
+                                                                <Landmark className="h-4 w-4 text-muted-foreground" />
+                                                                {account.name}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="transferTo">To Account</Label>
+                                            <Select name="transferTo" value={transferTo} onValueChange={setTransferTo} required>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select destination account" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {bankAccounts.map((account) => (
+                                                        <SelectItem key={account.id} value={account.id}>
+                                                            <div className="flex items-center gap-2">
+                                                                <Landmark className="h-4 w-4 text-muted-foreground" />
+                                                                {account.name}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Transfers move money between accounts and do not count as income.
+                                    </p>
                                 </>
                             )}
 

@@ -199,6 +199,7 @@ model Transaction {
   creditCardId   String?
   incomeSourceId String?
   bankAccountId  String?
+  transferToAccountId String?
   loanId         String?
   installmentId  String?
   createdAt      DateTime @default(now())
@@ -208,13 +209,15 @@ model Transaction {
   category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   creditCard   CreditCard?   @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
   incomeSource IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: SetNull)
-  bankAccount  BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  bankAccount  BankAccount?  @relation("TransactionSource", fields: [bankAccountId], references: [id], onDelete: SetNull)
+  transferToAccount BankAccount? @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
   loan         Loan?         @relation(fields: [loanId], references: [id], onDelete: SetNull)
   installment  Installment?  @relation(fields: [installmentId], references: [id], onDelete: SetNull)
 
   @@index([monthId])
   @@index([categoryId])
   @@index([date])
+  @@index([transferToAccountId])
 }
 
 model BankAccount {
@@ -231,7 +234,8 @@ model BankAccount {
   updatedAt     DateTime @updatedAt
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  transactions      Transaction[] @relation("TransactionSource")
+  incomingTransfers Transaction[] @relation("TransferDestination")
 
   @@index([userId])
 }

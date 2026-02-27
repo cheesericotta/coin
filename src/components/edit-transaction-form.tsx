@@ -19,7 +19,7 @@ import { updateTransaction } from "@/actions/transactions";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 
-type TransactionType = "expense" | "payment" | "income";
+type TransactionType = "expense" | "payment" | "income" | "transfer";
 
 interface EditTransactionFormProps {
     transaction: any;
@@ -42,6 +42,7 @@ function formatAmountValue(value: number) {
 }
 
 function getInitialType(transaction: any): TransactionType {
+    if (transaction.type === "transfer") return "transfer";
     if (transaction.type === "income") return "income";
     if (transaction.type === "payment") return "payment";
     if (transaction.loanId || transaction.installmentId) return "payment";
@@ -74,6 +75,8 @@ export function EditTransactionForm({
     const [sourceOfFunds, setSourceOfFunds] = useState(transaction.bankAccountId ? `bank:${transaction.bankAccountId}` : (initialType === "expense" && transaction.creditCardId ? `card:${transaction.creditCardId}` : ""));
     const [incomeDestination, setIncomeDestination] = useState(transaction.type === "income" ? (transaction.bankAccountId ? `bank:${transaction.bankAccountId}` : (transaction.creditCardId ? `card:${transaction.creditCardId}` : "")) : "");
     const [paymentTarget, setPaymentTarget] = useState(initialPaymentTarget);
+    const [transferFrom, setTransferFrom] = useState(transaction.type === "transfer" && transaction.bankAccountId ? transaction.bankAccountId : "");
+    const [transferTo, setTransferTo] = useState(transaction.type === "transfer" && transaction.transferToAccountId ? transaction.transferToAccountId : "");
     const [amount, setAmount] = useState(String(transaction.amount ?? ""));
     const [loading, setLoading] = useState(false);
     const [date, setDate] = useState<Date | undefined>(new Date(transaction.date));
@@ -167,6 +170,7 @@ export function EditTransactionForm({
             formData.delete("categoryId");
             formData.delete("loanId");
             formData.delete("installmentId");
+            formData.delete("transferToAccountId");
 
             const destination = formData.get("incomeDestination") as string;
             if (destination) {
@@ -178,6 +182,23 @@ export function EditTransactionForm({
                     formData.set("creditCardId", id);
                     formData.delete("bankAccountId");
                 }
+            }
+        }
+
+        if (type === "transfer") {
+            formData.delete("categoryId");
+            formData.delete("incomeSourceId");
+            formData.delete("loanId");
+            formData.delete("installmentId");
+            formData.delete("creditCardId");
+
+            const from = formData.get("transferFrom") as string;
+            const to = formData.get("transferTo") as string;
+            if (from) {
+                formData.set("bankAccountId", from);
+            }
+            if (to) {
+                formData.set("transferToAccountId", to);
             }
         }
 
@@ -195,7 +216,7 @@ export function EditTransactionForm({
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-2 md:grid-cols-3">
+            <div className="grid gap-2 md:grid-cols-4">
                 <Button
                     type="button"
                     variant={type === "expense" ? "default" : "outline"}
@@ -219,6 +240,14 @@ export function EditTransactionForm({
                     onClick={() => setType("income")}
                 >
                     Income
+                </Button>
+                <Button
+                    type="button"
+                    variant={type === "transfer" ? "default" : "outline"}
+                    className={type === "transfer" ? "bg-sky-500 hover:bg-sky-600" : ""}
+                    onClick={() => setType("transfer")}
+                >
+                    Transfer
                 </Button>
             </div>
 
@@ -444,6 +473,52 @@ export function EditTransactionForm({
                             </SelectContent>
                         </Select>
                     </div>
+                </>
+            )}
+
+            {type === "transfer" && (
+                <>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="transferFrom">From Account</Label>
+                            <Select name="transferFrom" value={transferFrom} onValueChange={setTransferFrom} required>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select source account" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {bankAccounts.map((account) => (
+                                        <SelectItem key={account.id} value={account.id}>
+                                            <div className="flex items-center gap-2">
+                                                <Landmark className="h-4 w-4 text-muted-foreground" />
+                                                {account.name}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="transferTo">To Account</Label>
+                            <Select name="transferTo" value={transferTo} onValueChange={setTransferTo} required>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select destination account" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {bankAccounts.map((account) => (
+                                        <SelectItem key={account.id} value={account.id}>
+                                            <div className="flex items-center gap-2">
+                                                <Landmark className="h-4 w-4 text-muted-foreground" />
+                                                {account.name}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        Transfers move money between accounts and do not count as income.
+                    </p>
                 </>
             )}
 

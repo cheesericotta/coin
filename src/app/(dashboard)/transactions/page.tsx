@@ -23,14 +23,90 @@ import { getLoans } from "@/actions/loans";
 import { getInstallments } from "@/actions/installments";
 import { formatCurrency, getCurrentDateInKL } from "@/lib/utils";
 import { TransactionList } from "@/components/transaction-list";
+import { TransactionsMonthFilter } from "@/components/transactions-month-filter";
 
-export default async function TransactionsPage() {
+const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+];
+const ALL_CURRENT_YEAR_PERIOD = "all-current-year";
+
+function buildPeriodOptions(currentDate: Date) {
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+
+    const monthlyOptions = Array.from({ length: currentMonth }, (_, index) => {
+        const month = index + 1;
+        const value = `${currentYear}-${String(month).padStart(2, "0")}`;
+        const label = `${monthNames[month - 1]} ${currentYear}`;
+        return { value, label };
+    });
+
+    return [
+        { value: ALL_CURRENT_YEAR_PERIOD, label: `All ${currentYear}` },
+        ...monthlyOptions,
+    ];
+}
+
+function parsePeriod(
+    period: string | undefined,
+    fallbackYear: number,
+    fallbackMonth: number,
+    maxMonthInYear: number
+) {
+    if (period === ALL_CURRENT_YEAR_PERIOD) {
+        return { year: fallbackYear, month: fallbackMonth, isAllCurrentYear: true };
+    }
+
+    if (!period || !/^\d{4}-\d{2}$/.test(period)) {
+        return { year: fallbackYear, month: fallbackMonth, isAllCurrentYear: false };
+    }
+
+    const [yearStr, monthStr] = period.split("-");
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+
+    if (
+        !Number.isFinite(year) ||
+        !Number.isFinite(month) ||
+        year !== fallbackYear ||
+        month < 1 ||
+        month > maxMonthInYear
+    ) {
+        return { year: fallbackYear, month: fallbackMonth, isAllCurrentYear: false };
+    }
+
+    return { year, month, isAllCurrentYear: false };
+}
+
+export default async function TransactionsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ period?: string }>;
+}) {
     const currentDate = getCurrentDateInKL();
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
+    const fallbackYear = currentDate.getFullYear();
+    const fallbackMonth = currentDate.getMonth() + 1;
+    const params = await searchParams;
+    const { year, month, isAllCurrentYear } = parsePeriod(params.period, fallbackYear, fallbackMonth, fallbackMonth);
+    const selectedPeriod = isAllCurrentYear
+        ? ALL_CURRENT_YEAR_PERIOD
+        : `${year}-${String(month).padStart(2, "0")}`;
+    const periodOptions = buildPeriodOptions(currentDate);
 
-    const [transactions, categories, creditCards, incomeSources, bankAccounts, loans, installments] = await Promise.all([
-        getTransactions(year, month),
+    const monthlyTransactions = isAllCurrentYear
+        ? await Promise.all(
+            Array.from({ length: fallbackMonth }, (_, index) =>
+                getTransactions(fallbackYear, index + 1)
+            )
+        )
+        : [await getTransactions(year, month)];
+
+    const transactions = monthlyTransactions
+        .flat()
+        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const [categories, creditCards, incomeSources, bankAccounts, loans, installments] = await Promise.all([
         getCategories(),
         getCreditCards(),
         getIncomeSources(),
@@ -69,6 +145,10 @@ export default async function TransactionsPage() {
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        <TransactionsMonthFilter
+                            selectedPeriod={selectedPeriod}
+                            options={periodOptions}
+                        />
                         <Button asChild>
                             <Link href="/transactions/new">
                                 <Plus className="mr-2 h-4 w-4" />
@@ -83,7 +163,7 @@ export default async function TransactionsPage() {
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
-                                This Month Income
+                                {isAllCurrentYear ? "Current Year Income" : "Selected Month Income"}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -95,7 +175,7 @@ export default async function TransactionsPage() {
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
-                                This Month Expenses
+                                {isAllCurrentYear ? "Current Year Expenses" : "Selected Month Expenses"}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -107,7 +187,7 @@ export default async function TransactionsPage() {
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
-                                This Month Payments
+                                {isAllCurrentYear ? "Current Year Payments" : "Selected Month Payments"}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>

@@ -309,6 +309,8 @@ export default async function MonthlyViewPage({
                                                         <ArrowUpRight className="h-4 w-4 text-emerald-500" />
                                                     ) : tx.type === "payment" ? (
                                                         <ArrowRightLeft className="h-4 w-4 text-amber-500" />
+                                                    ) : tx.type === "transfer" ? (
+                                                        <ArrowRightLeft className="h-4 w-4 text-sky-500" />
                                                     ) : (
                                                         <ArrowDownRight className="h-4 w-4 text-red-500" />
                                                     )}
@@ -317,6 +319,11 @@ export default async function MonthlyViewPage({
                                                         {tx.type === "payment" && (
                                                             <Badge variant="outline" className="text-[10px] h-4 px-1 bg-amber-500/10 text-amber-500 border-amber-500/20">
                                                                 Payment
+                                                            </Badge>
+                                                        )}
+                                                        {tx.type === "transfer" && (
+                                                            <Badge variant="outline" className="text-[10px] h-4 px-1 bg-sky-500/10 text-sky-600 border-sky-500/20">
+                                                                Transfer
                                                             </Badge>
                                                         )}
                                                     </div>
@@ -345,7 +352,9 @@ export default async function MonthlyViewPage({
                                                 )}
                                             </TableCell>
                                             <TableCell>
-                                                {tx.creditCard?.name || tx.bankAccount?.name || "-"}
+                                                {tx.type === "transfer"
+                                                    ? `${tx.bankAccount?.name || "-"} -> ${tx.transferToAccount?.name || "-"}`
+                                                    : tx.creditCard?.name || tx.bankAccount?.name || "-"}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <span
@@ -353,10 +362,16 @@ export default async function MonthlyViewPage({
                                                         ? "text-emerald-500"
                                                         : tx.type === "payment"
                                                             ? "text-amber-500"
+                                                            : tx.type === "transfer"
+                                                                ? "text-sky-600"
                                                             : "text-red-500"
                                                         }`}
                                                 >
-                                                    {tx.type === "income" ? "+" : "-"}{formatCurrency(Number(tx.amount))}
+                                                    {tx.type === "income"
+                                                        ? `+${formatCurrency(Number(tx.amount))}`
+                                                        : tx.type === "transfer"
+                                                            ? formatCurrency(Number(tx.amount))
+                                                            : `-${formatCurrency(Number(tx.amount))}`}
                                                 </span>
                                             </TableCell>
                                         </TableRow>

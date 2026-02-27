@@ -5,7 +5,10 @@
 import { useState, useMemo } from "react";
 import {
     ArrowDownRight,
+    ArrowRightLeft,
     ArrowUpRight,
+    ChevronLeft,
+    ChevronRight,
     Pencil,
     Filter,
     Search,
@@ -76,6 +79,8 @@ export function TransactionList({
     const [categoryFilter, setCategoryFilter] = useState<string>("all");
     const [paymentFilter, setPaymentFilter] = useState<string>("all");
     const [incomeSourceFilter, setIncomeSourceFilter] = useState<string>("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -92,7 +97,7 @@ export function TransactionList({
             if (paymentFilter !== "all") {
                 const [sourceType, id] = paymentFilter.split(":");
                 if (sourceType === "bank") {
-                    matchesPayment = tx.bankAccountId === id;
+                    matchesPayment = tx.bankAccountId === id || tx.transferToAccountId === id;
                 } else if (sourceType === "card") {
                     matchesPayment = tx.creditCardId === id;
                 }
@@ -101,6 +106,19 @@ export function TransactionList({
             return matchesSearch && matchesType && matchesCategory && matchesPayment && matchesIncomeSource;
         });
     }, [initialTransactions, searchTerm, typeFilter, categoryFilter, paymentFilter, incomeSourceFilter]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / rowsPerPage));
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+    const startIndex = (safeCurrentPage - 1) * rowsPerPage;
+    const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + rowsPerPage);
+
+    const pageNumbers = useMemo(() => {
+        const maxVisible = 5;
+        const start = Math.max(1, safeCurrentPage - Math.floor(maxVisible / 2));
+        const end = Math.min(totalPages, start + maxVisible - 1);
+        const adjustedStart = Math.max(1, end - maxVisible + 1);
+        return Array.from({ length: end - adjustedStart + 1 }, (_, i) => adjustedStart + i);
+    }, [safeCurrentPage, totalPages]);
 
     async function handleDelete() {
         if (!deletingId) return;
@@ -125,10 +143,16 @@ export function TransactionList({
                         placeholder="Search descriptions..."
                         className="pl-8"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                        }}
                     />
                 </div>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <Select value={typeFilter} onValueChange={(value) => {
+                    setTypeFilter(value);
+                    setCurrentPage(1);
+                }}>
                     <SelectTrigger>
                         <SelectValue placeholder="All Types" />
                     </SelectTrigger>
@@ -137,9 +161,13 @@ export function TransactionList({
                         <SelectItem value="expense">Expense</SelectItem>
                         <SelectItem value="payment">Payment</SelectItem>
                         <SelectItem value="income">Income</SelectItem>
+                        <SelectItem value="transfer">Transfer</SelectItem>
                     </SelectContent>
                 </Select>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={categoryFilter} onValueChange={(value) => {
+                    setCategoryFilter(value);
+                    setCurrentPage(1);
+                }}>
                     <SelectTrigger>
                         <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
@@ -152,7 +180,10 @@ export function TransactionList({
                         ))}
                     </SelectContent>
                 </Select>
-                <Select value={incomeSourceFilter} onValueChange={setIncomeSourceFilter}>
+                <Select value={incomeSourceFilter} onValueChange={(value) => {
+                    setIncomeSourceFilter(value);
+                    setCurrentPage(1);
+                }}>
                     <SelectTrigger>
                         <SelectValue placeholder="All Income Sources" />
                     </SelectTrigger>
@@ -165,7 +196,10 @@ export function TransactionList({
                         ))}
                     </SelectContent>
                 </Select>
-                <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                <Select value={paymentFilter} onValueChange={(value) => {
+                    setPaymentFilter(value);
+                    setCurrentPage(1);
+                }}>
                     <SelectTrigger>
                         <SelectValue placeholder="All Payment Methods" />
                     </SelectTrigger>
@@ -199,8 +233,8 @@ export function TransactionList({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredTransactions.length > 0 ? (
-                            filteredTransactions.map((tx) => (
+                        {paginatedTransactions.length > 0 ? (
+                            paginatedTransactions.map((tx) => (
                                 <TableRow key={tx.id}>
                                     <TableCell className="font-medium whitespace-nowrap">
                                         {format(new Date(tx.date), "dd/MM/yyyy")}
@@ -209,6 +243,10 @@ export function TransactionList({
                                         <div className="flex items-center gap-2">
                                             {tx.type === "income" ? (
                                                 <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                                            ) : tx.type === "payment" ? (
+                                                <ArrowRightLeft className="h-4 w-4 text-amber-500" />
+                                            ) : tx.type === "transfer" ? (
+                                                <ArrowRightLeft className="h-4 w-4 text-sky-500" />
                                             ) : (
                                                 <ArrowDownRight className="h-4 w-4 text-red-500" />
                                             )}
@@ -223,6 +261,11 @@ export function TransactionList({
                                                     {tx.installmentId && (
                                                         <Badge variant="outline" className="text-[10px] h-4 px-1 bg-amber-500/10 text-amber-500 border-amber-500/20">
                                                             Inst.
+                                                        </Badge>
+                                                    )}
+                                                    {tx.type === "transfer" && (
+                                                        <Badge variant="outline" className="text-[10px] h-4 px-1 bg-sky-500/10 text-sky-600 border-sky-500/20">
+                                                            Transfer
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -245,11 +288,23 @@ export function TransactionList({
                                         )}
                                     </TableCell>
                                     <TableCell className="max-w-[150px] truncate">
-                                        {tx.creditCard?.name || tx.bankAccount?.name || "-"}
+                                        {tx.type === "transfer"
+                                            ? `${tx.bankAccount?.name || "-"} -> ${tx.transferToAccount?.name || "-"}`
+                                            : tx.creditCard?.name || tx.bankAccount?.name || "-"}
                                     </TableCell>
                                     <TableCell>
-                                        <span className={`font-semibold ${tx.type === "income" ? "text-emerald-500" : "text-red-500"}`}>
-                                            {tx.type === "income" ? "+" : "-"}{formatCurrency(Number(tx.amount))}
+                                        <span className={`font-semibold ${tx.type === "income"
+                                            ? "text-emerald-500"
+                                            : tx.type === "payment"
+                                                ? "text-amber-500"
+                                                : tx.type === "transfer"
+                                                    ? "text-sky-600"
+                                                    : "text-red-500"}`}>
+                                            {tx.type === "income"
+                                                ? `+${formatCurrency(Number(tx.amount))}`
+                                                : tx.type === "transfer"
+                                                    ? formatCurrency(Number(tx.amount))
+                                                    : `-${formatCurrency(Number(tx.amount))}`}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -283,6 +338,65 @@ export function TransactionList({
                         )}
                     </TableBody>
                 </Table>
+                <div className="border-t px-4 py-3">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:items-center">
+                        <div className="flex items-center gap-2 justify-start">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Records per page</span>
+                            <Select
+                                value={String(rowsPerPage)}
+                                onValueChange={(value) => {
+                                    setRowsPerPage(Number(value));
+                                    setCurrentPage(1);
+                                }}
+                            >
+                                <SelectTrigger className="h-8 w-[88px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="25">25</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center justify-center gap-1">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={safeCurrentPage === 1}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            {pageNumbers.map((pageNumber) => (
+                                <Button
+                                    key={pageNumber}
+                                    variant={pageNumber === safeCurrentPage ? "default" : "outline"}
+                                    size="sm"
+                                    className="h-8 min-w-8 px-2"
+                                    onClick={() => setCurrentPage(pageNumber)}
+                                >
+                                    {pageNumber}
+                                </Button>
+                            ))}
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={safeCurrentPage === totalPages}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="text-sm text-muted-foreground text-left md:text-right">
+                            {filteredTransactions.length === 0
+                                ? "0 records"
+                                : `${startIndex + 1}-${Math.min(startIndex + rowsPerPage, filteredTransactions.length)} of ${filteredTransactions.length}`}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Edit Dialog */}

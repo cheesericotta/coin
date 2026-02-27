@@ -247,12 +247,16 @@ export default async function DashboardPage() {
                                                         ? "bg-emerald-500/10 text-emerald-500"
                                                         : tx.type === "payment"
                                                             ? "bg-amber-500/10 text-amber-500"
+                                                            : tx.type === "transfer"
+                                                                ? "bg-sky-500/10 text-sky-500"
                                                             : "bg-red-500/10 text-red-500"
                                                         }`}
                                                 >
                                                     {tx.type === "income" ? (
                                                         <ArrowUpRight className="h-4 w-4" />
                                                     ) : tx.type === "payment" ? (
+                                                        <ArrowRightLeft className="h-4 w-4" />
+                                                    ) : tx.type === "transfer" ? (
                                                         <ArrowRightLeft className="h-4 w-4" />
                                                     ) : (
                                                         <ArrowDownRight className="h-4 w-4" />
@@ -273,10 +277,16 @@ export default async function DashboardPage() {
                                                     ? "text-emerald-500"
                                                     : tx.type === "payment"
                                                         ? "text-amber-500"
+                                                        : tx.type === "transfer"
+                                                            ? "text-sky-600"
                                                         : "text-red-500"
                                                     }`}
                                             >
-                                                {tx.type === "income" ? "+" : "-"}{formatCurrency(Number(tx.amount))}
+                                                {tx.type === "income"
+                                                    ? `+${formatCurrency(Number(tx.amount))}`
+                                                    : tx.type === "transfer"
+                                                        ? formatCurrency(Number(tx.amount))
+                                                        : `-${formatCurrency(Number(tx.amount))}`}
                                             </span>
                                         </div>
                                     ))}
