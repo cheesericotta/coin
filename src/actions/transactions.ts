@@ -7,8 +7,37 @@ import { revalidatePath } from "next/cache";
 import { Decimal } from "@prisma/client/runtime/library";
 import { Prisma } from "@prisma/client";
 
+const BUDGET_CUTOFF_DAY = 28;
+
 function isDebtPaymentType(type: string) {
     return type === "payment" || type === "expense";
+}
+
+function getNextMonth(year: number, month: number) {
+    if (month === 12) {
+        return { year: year + 1, month: 1 };
+    }
+    return { year, month: month + 1 };
+}
+
+function getDateParts(dateStr: string) {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return { year, month, day };
+}
+
+function getBudgetPeriodForTransaction({
+    year,
+    month,
+    day,
+}: {
+    year: number;
+    month: number;
+    day: number;
+}) {
+    if (day >= BUDGET_CUTOFF_DAY) {
+        return getNextMonth(year, month);
+    }
+    return { year, month };
 }
 
 async function getAuthenticatedUserId() {
@@ -97,7 +126,7 @@ export async function createTransaction(formData: FormData) {
     const userId = await getAuthenticatedUserId();
     const dateStr = formData.get("date") as string;
     const date = new Date(dateStr);
-    const [year, month] = dateStr.split("-").map(Number);
+    const { year, month, day } = getDateParts(dateStr);
     const amount = formData.get("amount") as string;
     const description = formData.get("description") as string;
     const notes = formData.get("notes") as string;
@@ -117,7 +146,13 @@ export async function createTransaction(formData: FormData) {
         return { error: "Invalid transaction type" };
     }
 
-    const { monthRecord } = await ensureYearAndMonth(userId, year, month);
+    const budgetPeriod = getBudgetPeriodForTransaction({
+        year,
+        month,
+        day,
+    });
+
+    const { monthRecord } = await ensureYearAndMonth(userId, budgetPeriod.year, budgetPeriod.month);
 
     try {
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -172,7 +207,7 @@ export async function createTransaction(formData: FormData) {
             }
         });
 
-        revalidatePath(`/month/${year}/${month}`);
+        revalidatePath(`/month/${budgetPeriod.year}/${budgetPeriod.month}`);
         revalidatePath("/transactions");
         revalidatePath("/accounts");
         revalidatePath("/loans");
@@ -198,7 +233,7 @@ export async function updateTransaction(id: string, formData: FormData) {
     const bankAccountId = formData.get("bankAccountId") as string;
     const loanId = formData.get("loanId") as string;
 
-    const [year, month] = dateStr.split("-").map(Number);
+    const { year, month, day } = getDateParts(dateStr);
 
     try {
         const oldTx = await prisma.transaction.findFirst({
@@ -208,7 +243,13 @@ export async function updateTransaction(id: string, formData: FormData) {
 
         if (!oldTx) return { error: "Transaction not found" };
 
-        const { monthRecord } = await ensureYearAndMonth(userId, year, month);
+        const budgetPeriod = getBudgetPeriodForTransaction({
+            year,
+            month,
+            day,
+        });
+
+        const { monthRecord } = await ensureYearAndMonth(userId, budgetPeriod.year, budgetPeriod.month);
 
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Reverse OLD effects
@@ -280,7 +321,7 @@ export async function updateTransaction(id: string, formData: FormData) {
             });
         });
 
-        revalidatePath(`/month/${year}/${month}`);
+        revalidatePath(`/month/${budgetPeriod.year}/${budgetPeriod.month}`);
         revalidatePath(`/month/${oldTx.month.year.year}/${oldTx.month.month}`);
         revalidatePath("/transactions");
         revalidatePath("/accounts");
