@@ -161,7 +161,6 @@ export function NewTransactionForm({
         }
 
         if (type === "transfer") {
-            formData.delete("categoryId");
             formData.delete("incomeSourceId");
             formData.delete("loanId");
             formData.delete("installmentId");
@@ -475,6 +474,27 @@ export function NewTransactionForm({
 
                             {type === "transfer" && (
                                 <>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="categoryId">Budget Category</Label>
+                                        <Select name="categoryId">
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {categories.map((cat) => (
+                                                    <SelectItem key={cat.id} value={cat.id}>
+                                                        <div className="flex items-center gap-2">
+                                                            <div
+                                                                className="h-3 w-3 rounded-full"
+                                                                style={{ backgroundColor: cat.color || "#6b7280" }}
+                                                            />
+                                                            {cat.name}
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div className="space-y-2">
                                             <Label htmlFor="transferFrom">From Account</Label>

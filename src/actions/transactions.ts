@@ -52,6 +52,35 @@ async function getAuthenticatedUserId() {
     return session.user.id;
 }
 
+async function resolveDescriptionForTransaction(params: {
+    userId: string;
+    type: string;
+    description: string;
+    categoryId: string;
+}) {
+    const { userId, type, description, categoryId } = params;
+    const trimmedDescription = description?.trim() || "";
+
+    if (trimmedDescription) {
+        return trimmedDescription;
+    }
+
+    if (type === "income") {
+        return "Income";
+    }
+
+    if (!categoryId) {
+        return null;
+    }
+
+    const category = await prisma.category.findFirst({
+        where: { id: categoryId, userId },
+        select: { name: true },
+    });
+
+    return category?.name || null;
+}
+
 export async function ensureYearAndMonth(userId: string, year: number, month: number) {
     let yearRecord = await prisma.year.findUnique({
         where: { userId_year: { userId, year } },
@@ -171,6 +200,12 @@ export async function createTransaction(formData: FormData) {
         month,
         day,
     });
+    const finalDescription = await resolveDescriptionForTransaction({
+        userId,
+        type,
+        description,
+        categoryId,
+    });
 
     const { monthRecord } = await ensureYearAndMonth(userId, budgetPeriod.year, budgetPeriod.month);
 
@@ -180,7 +215,7 @@ export async function createTransaction(formData: FormData) {
                 data: {
                     date,
                     amount: new Decimal(amount),
-                    description: description || null,
+                    description: finalDescription,
                     notes: notes || null,
                     type,
                     monthId: monthRecord.id,
@@ -292,6 +327,12 @@ export async function updateTransaction(id: string, formData: FormData) {
             month,
             day,
         });
+        const finalDescription = await resolveDescriptionForTransaction({
+            userId,
+            type,
+            description,
+            categoryId,
+        });
 
         const { monthRecord } = await ensureYearAndMonth(userId, budgetPeriod.year, budgetPeriod.month);
 
@@ -379,7 +420,7 @@ export async function updateTransaction(id: string, formData: FormData) {
                 data: {
                     date,
                     amount,
-                    description: description || null,
+                    description: finalDescription,
                     notes: notes || null,
                     type,
                     monthId: monthRecord.id,
@@ -529,7 +570,10 @@ export async function getMonthlyStats(year: number, month: number) {
     // Category breakdown with planned vs actual
     const categoryBreakdown = budgets.map((budget: any) => {
         const actual = transactions
-            .filter((t: any) => t.categoryId === budget.categoryId && t.type === "expense")
+            .filter((t: any) =>
+                t.categoryId === budget.categoryId &&
+                (t.type === "expense" || t.type === "transfer")
+            )
             .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
 
         return {

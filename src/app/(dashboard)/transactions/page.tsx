@@ -31,9 +31,16 @@ const monthNames = [
 ];
 const ALL_CURRENT_YEAR_PERIOD = "all-current-year";
 
+function toKLDateKey(date: Date) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kuala_Lumpur" }).format(date);
+}
+
 function buildPeriodOptions(currentDate: Date) {
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
+    const upcomingDate = new Date(currentYear, currentMonth, 1);
+    const upcomingYear = upcomingDate.getFullYear();
+    const upcomingMonth = upcomingDate.getMonth() + 1;
 
     const monthlyOptions = Array.from({ length: currentMonth }, (_, index) => {
         const month = index + 1;
@@ -42,9 +49,13 @@ function buildPeriodOptions(currentDate: Date) {
         return { value, label };
     });
 
+    const upcomingValue = `${upcomingYear}-${String(upcomingMonth).padStart(2, "0")}`;
+    const upcomingLabel = `${monthNames[upcomingMonth - 1]} ${upcomingYear} (Upcoming)`;
+
     return [
         { value: ALL_CURRENT_YEAR_PERIOD, label: `All ${currentYear}` },
         ...monthlyOptions,
+        { value: upcomingValue, label: upcomingLabel },
     ];
 }
 
@@ -52,7 +63,7 @@ function parsePeriod(
     period: string | undefined,
     fallbackYear: number,
     fallbackMonth: number,
-    maxMonthInYear: number
+    allowedPeriods: Set<string>
 ) {
     if (period === ALL_CURRENT_YEAR_PERIOD) {
         return { year: fallbackYear, month: fallbackMonth, isAllCurrentYear: true };
@@ -61,18 +72,15 @@ function parsePeriod(
     if (!period || !/^\d{4}-\d{2}$/.test(period)) {
         return { year: fallbackYear, month: fallbackMonth, isAllCurrentYear: false };
     }
+    if (!allowedPeriods.has(period)) {
+        return { year: fallbackYear, month: fallbackMonth, isAllCurrentYear: false };
+    }
 
     const [yearStr, monthStr] = period.split("-");
     const year = Number(yearStr);
     const month = Number(monthStr);
 
-    if (
-        !Number.isFinite(year) ||
-        !Number.isFinite(month) ||
-        year !== fallbackYear ||
-        month < 1 ||
-        month > maxMonthInYear
-    ) {
+    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
         return { year: fallbackYear, month: fallbackMonth, isAllCurrentYear: false };
     }
 
@@ -88,11 +96,17 @@ export default async function TransactionsPage({
     const fallbackYear = currentDate.getFullYear();
     const fallbackMonth = currentDate.getMonth() + 1;
     const params = await searchParams;
-    const { year, month, isAllCurrentYear } = parsePeriod(params.period, fallbackYear, fallbackMonth, fallbackMonth);
+    const periodOptions = buildPeriodOptions(currentDate);
+    const allowedPeriods = new Set(periodOptions.map((option) => option.value));
+    const { year, month, isAllCurrentYear } = parsePeriod(
+        params.period,
+        fallbackYear,
+        fallbackMonth,
+        allowedPeriods
+    );
     const selectedPeriod = isAllCurrentYear
         ? ALL_CURRENT_YEAR_PERIOD
         : `${year}-${String(month).padStart(2, "0")}`;
-    const periodOptions = buildPeriodOptions(currentDate);
 
     const monthlyTransactions = isAllCurrentYear
         ? await Promise.all(
@@ -102,8 +116,15 @@ export default async function TransactionsPage({
         )
         : [await getTransactions(year, month)];
 
+    const todayKey = toKLDateKey(currentDate);
     const transactions = monthlyTransactions
         .flat()
+        .filter((tx: any) => {
+            if (!tx.installmentId) {
+                return true;
+            }
+            return toKLDateKey(new Date(tx.date)) <= todayKey;
+        })
         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const [categories, creditCards, incomeSources, bankAccounts, loans, installments] = await Promise.all([
