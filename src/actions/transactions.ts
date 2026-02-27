@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { Decimal } from "@prisma/client/runtime/library";
 import { Prisma } from "@prisma/client";
 
-const BUDGET_CUTOFF_DAY = 28;
+const BUDGET_CUTOFF_DAY = 25;
 
 function isDebtPaymentType(type: string) {
     return type === "payment" || type === "expense";

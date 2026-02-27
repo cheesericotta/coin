@@ -244,7 +244,7 @@ export function EditTransactionForm({
                 <Label>Date</Label>
                 <DatePicker date={date} setDate={setDate} />
                 <p className="text-xs text-muted-foreground">
-                    Transactions dated on day 28 or later are counted toward next month&apos;s budget.
+                    Transactions dated on day 25 or later are counted toward next month&apos;s budget.
                 </p>
             </div>
 
